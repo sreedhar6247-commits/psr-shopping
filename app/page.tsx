@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const products = [
   {
@@ -33,12 +33,23 @@ const products = [
   },
 ];
 
-export default function HomePage() {
-  const [cart, setCart] = useState<number[]>([]);
+const [cart, setCart] = useState<number[]>([]);
 
-  function addToCart(id: number) {
-    setCart([...cart, id]);
+useEffect(() => {
+  const savedCart = localStorage.getItem("cart");
+
+  if (savedCart) {
+    setCart(JSON.parse(savedCart));
   }
+}, []);
+
+function addToCart(id: number) {
+  const newCart = [...cart, id];
+
+  setCart(newCart);
+  localStorage.setItem("cart", JSON.stringify(newCart));
+}
+  
 
   return (
     <main
