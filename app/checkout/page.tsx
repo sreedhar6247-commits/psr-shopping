@@ -1,142 +1,70 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useEffect, useState } from "react";
+
+type Product = {
+  id: number;
+  name: string;
+  price: number;
+};
+
+const products: Product[] = [
+  {
+    id: 1,
+    name: "Designer Saree",
+    price: 1499,
+  },
+  {
+    id: 2,
+    name: "Cotton Kurti",
+    price: 699,
+  },
+  {
+    id: 3,
+    name: "Party Wear Dress",
+    price: 1299,
+  },
+  {
+    id: 4,
+    name: "Women's Stylish Top",
+    price: 499,
+  },
+];
 
 export default function CheckoutPage() {
+  const [cart, setCart] = useState<number[]>([]);
+
   const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
+  const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [pin, setPin] = useState("");
-  const [orderPlaced, setOrderPlaced] = useState(false);
-  const [orderNumber, setOrderNumber] = useState("");
+  const [city, setCity] = useState("");
+  const [pincode, setPincode] = useState("");
 
-  function placeOrder(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+    const savedCart = localStorage.getItem("cart");
 
-    if (!name.trim()) {
-      alert("Please enter your full name.");
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+    }
+  }, []);
+
+  const cartProducts = cart
+    .map((id) => products.find((product) => product.id === id))
+    .filter(Boolean) as Product[];
+
+  const total = cartProducts.reduce(
+    (sum, product) => sum + product.price,
+    0
+  );
+
+  function placeOrder() {
+    if (!name || !phone || !address || !city || !pincode) {
+      alert("Please fill all the details.");
       return;
     }
 
-    if (!/^[6-9]\d{9}$/.test(mobile)) {
-      alert("Please enter a valid 10-digit mobile number.");
-      return;
-    }
-
-    if (!address.trim()) {
-      alert("Please enter your delivery address.");
-      return;
-    }
-
-    if (!/^\d{6}$/.test(pin)) {
-      alert("Please enter a valid 6-digit PIN code.");
-      return;
-    }
-
-    const newOrderNumber =
-      "SS" + Date.now().toString().slice(-8);
-
-    setOrderNumber(newOrderNumber);
-    setOrderPlaced(true);
-
-    // Clear cart count if your website stores it in localStorage
-    localStorage.setItem("cartCount", "0");
-  }
-
-  if (orderPlaced) {
-    return (
-      <main
-        style={{
-          minHeight: "100vh",
-          background: "#fff5f8",
-          padding: "50px 20px",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "600px",
-            margin: "40px auto",
-            background: "white",
-            padding: "40px 25px",
-            borderRadius: "20px",
-            boxShadow: "0 5px 20px rgba(0,0,0,0.08)",
-          }}
-        >
-          <div style={{ fontSize: "60px" }}>✅</div>
-
-          <h1
-            style={{
-              fontSize: "36px",
-              marginBottom: "15px",
-              color: "#e91e63",
-            }}
-          >
-            Order Placed!
-          </h1>
-
-          <p
-            style={{
-              fontSize: "20px",
-              color: "#555",
-              lineHeight: 1.5,
-            }}
-          >
-            Thank you for shopping with Sindhu Shopping.
-          </p>
-
-          <div
-            style={{
-              background: "#fff0f5",
-              padding: "20px",
-              borderRadius: "12px",
-              margin: "25px 0",
-            }}
-          >
-            <p style={{ margin: 0, fontSize: "16px" }}>
-              Your Order Number
-            </p>
-
-            <strong
-              style={{
-                display: "block",
-                marginTop: "8px",
-                fontSize: "26px",
-                color: "#e91e63",
-              }}
-            >
-              {orderNumber}
-            </strong>
-          </div>
-
-          <p
-            style={{
-              color: "#666",
-              marginBottom: "25px",
-            }}
-          >
-            We have received your order details successfully.
-          </p>
-
-          <button
-            onClick={() => {
-              window.location.href = "/";
-            }}
-            style={{
-              background: "#e91e63",
-              color: "white",
-              border: "none",
-              borderRadius: "10px",
-              padding: "15px 30px",
-              fontSize: "18px",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            Continue Shopping
-          </button>
-        </div>
-      </main>
+    alert(
+      `Thank you ${name}! Your order has been received.\n\nTotal: ₹${total}`
     );
   }
 
@@ -144,200 +72,224 @@ export default function CheckoutPage() {
     <main
       style={{
         minHeight: "100vh",
-        background: "#f7f7f7",
-        padding: "40px 20px",
+        background: "#fff7f9",
+        fontFamily: "Arial, sans-serif",
+        color: "#222",
+        paddingBottom: "50px",
       }}
     >
-      <div
+      {/* Header */}
+
+      <header
         style={{
-          maxWidth: "700px",
-          margin: "0 auto",
+          background: "#ffffff",
+          padding: "20px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderBottom: "1px solid #eee",
         }}
       >
         <h1
           style={{
-            fontSize: "48px",
-            marginBottom: "10px",
+            margin: 0,
+            color: "#e91e63",
+            fontSize: "30px",
           }}
         >
-          Checkout
+          Sindhu Shopping
         </h1>
 
-        <p
+        <a
+          href="/"
           style={{
-            fontSize: "20px",
-            color: "#666",
+            background: "#e91e63",
+            color: "#fff",
+            padding: "14px 22px",
+            borderRadius: "12px",
+            textDecoration: "none",
+            fontWeight: "bold",
+          }}
+        >
+          Continue Shopping
+        </a>
+      </header>
+
+      {/* Checkout */}
+
+      <section
+        style={{
+          maxWidth: "900px",
+          margin: "40px auto",
+          padding: "20px",
+        }}
+      >
+        <h2
+          style={{
+            fontSize: "36px",
+            textAlign: "center",
             marginBottom: "30px",
           }}
         >
-          Enter your delivery details to place your order.
-        </p>
+          🛍️ Checkout
+        </h2>
 
-        <form
-          onSubmit={placeOrder}
+        {/* Customer Details */}
+
+        <div
           style={{
-            background: "white",
+            background: "#ffffff",
             padding: "30px",
-            borderRadius: "18px",
-            boxShadow: "0 4px 18px rgba(0,0,0,0.08)",
+            borderRadius: "20px",
+            marginBottom: "25px",
+            boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
           }}
         >
-          <label
-            style={{
-              display: "block",
-              fontWeight: "bold",
-              marginBottom: "8px",
-            }}
-          >
-            Full Name
-          </label>
+          <h3 style={{ fontSize: "25px" }}>Delivery Details</h3>
 
           <input
             type="text"
-            placeholder="Enter your full name"
+            placeholder="Full Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            required
-            style={{
-              width: "100%",
-              padding: "15px",
-              marginBottom: "20px",
-              border: "1px solid #ccc",
-              borderRadius: "10px",
-              fontSize: "16px",
-              boxSizing: "border-box",
-            }}
+            style={inputStyle}
           />
-
-          <label
-            style={{
-              display: "block",
-              fontWeight: "bold",
-              marginBottom: "8px",
-            }}
-          >
-            Mobile Number
-          </label>
 
           <input
             type="tel"
-            placeholder="10-digit mobile number"
-            value={mobile}
-            onChange={(e) =>
-              setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
-            }
-            required
-            maxLength={10}
-            style={{
-              width: "100%",
-              padding: "15px",
-              marginBottom: "20px",
-              border: "1px solid #ccc",
-              borderRadius: "10px",
-              fontSize: "16px",
-              boxSizing: "border-box",
-            }}
+            placeholder="Mobile Number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            style={inputStyle}
           />
 
-          <label
-            style={{
-              display: "block",
-              fontWeight: "bold",
-              marginBottom: "8px",
-            }}
-          >
-            Delivery Address
-          </label>
-
           <textarea
-            placeholder="House number, street, village/city, district"
+            placeholder="Full Address"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            required
-            rows={5}
             style={{
-              width: "100%",
-              padding: "15px",
-              marginBottom: "20px",
-              border: "1px solid #ccc",
-              borderRadius: "10px",
-              fontSize: "16px",
-              boxSizing: "border-box",
+              ...inputStyle,
+              minHeight: "100px",
               resize: "vertical",
             }}
           />
 
-          <label
-            style={{
-              display: "block",
-              fontWeight: "bold",
-              marginBottom: "8px",
-            }}
-          >
-            PIN Code
-          </label>
+          <input
+            type="text"
+            placeholder="City"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            style={inputStyle}
+          />
 
           <input
             type="text"
-            inputMode="numeric"
-            placeholder="6-digit PIN code"
-            value={pin}
-            onChange={(e) =>
-              setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
-            }
-            required
-            maxLength={6}
-            style={{
-              width: "100%",
-              padding: "15px",
-              marginBottom: "25px",
-              border: "1px solid #ccc",
-              borderRadius: "10px",
-              fontSize: "16px",
-              boxSizing: "border-box",
-            }}
+            placeholder="Pincode"
+            value={pincode}
+            onChange={(e) => setPincode(e.target.value)}
+            style={inputStyle}
           />
+        </div>
 
-          <div
-            style={{
-              background: "#fff0f5",
-              padding: "18px",
-              borderRadius: "10px",
-              marginBottom: "25px",
-            }}
-          >
-            <strong style={{ fontSize: "18px" }}>
-              Payment
-            </strong>
+        {/* Order Summary */}
 
-            <p
-              style={{
-                marginBottom: 0,
-                color: "#555",
-              }}
-            >
-              UPI payment will be added after the order system is connected.
-            </p>
-          </div>
+        <div
+          style={{
+            background: "#ffffff",
+            padding: "30px",
+            borderRadius: "20px",
+            boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+          }}
+        >
+          <h3 style={{ fontSize: "25px" }}>Order Summary</h3>
 
-          <button
-            type="submit"
-            style={{
-              width: "100%",
-              background: "#e91e63",
-              color: "white",
-              border: "none",
-              borderRadius: "10px",
-              padding: "17px",
-              fontSize: "20px",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            Place Order
-          </button>
-        </form>
-      </div>
+          {cartProducts.length === 0 ? (
+            <p>Your cart is empty.</p>
+          ) : (
+            <>
+              {cartProducts.map((product, index) => (
+                <div
+                  key={`${product.id}-${index}`}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "15px 0",
+                    borderBottom: "1px solid #eee",
+                  }}
+                >
+                  <span>{product.name}</span>
+
+                  <strong>₹{product.price}</strong>
+                </div>
+              ))}
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: "25px",
+                  fontSize: "25px",
+                  fontWeight: "bold",
+                }}
+              >
+                <span>Total</span>
+                <span style={{ color: "#e91e63" }}>₹{total}</span>
+              </div>
+
+              <button
+                onClick={placeOrder}
+                style={{
+                  width: "100%",
+                  marginTop: "30px",
+                  padding: "18px",
+                  background: "#e91e63",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "12px",
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                Place Order
+              </button>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* Footer */}
+
+      <footer
+        style={{
+          background: "#222",
+          color: "#fff",
+          textAlign: "center",
+          padding: "40px 20px",
+          marginTop: "50px",
+        }}
+      >
+        <h2>Sindhu Shopping</h2>
+
+        <p>
+          Women's Fashion • Sarees • Kurtis • Dresses • Tops
+        </p>
+
+        <p style={{ color: "#aaa" }}>
+          © 2026 Sindhu Shopping. All rights reserved.
+        </p>
+      </footer>
     </main>
   );
 }
+
+const inputStyle = {
+  width: "100%",
+  boxSizing: "border-box" as const,
+  padding: "16px",
+  marginTop: "15px",
+  border: "1px solid #ddd",
+  borderRadius: "10px",
+  fontSize: "16px",
+  outline: "none",
+};
