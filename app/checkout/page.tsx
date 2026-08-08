@@ -2,350 +2,255 @@
 
 import { useEffect, useState } from "react";
 
-type Product = {
-  id: number;
-  name: string;
-  price: number;
-};
-
-const products: Product[] = [
-  {
-    id: 1,
-    name: "Designer Saree",
-    price: 1499,
-  },
-  {
-    id: 2,
-    name: "Cotton Kurti",
-    price: 699,
-  },
-  {
-    id: 3,
-    name: "Party Wear Dress",
-    price: 1299,
-  },
-  {
-    id: 4,
-    name: "Women's Stylish Top",
-    price: 499,
-  },
-];
-
 export default function CheckoutPage() {
-  const [cart, setCart] = useState<number[]>([]);
-
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [pincode, setPincode] = useState("");
 
-  useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
+  const [cart, setCart] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
 
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem("cart");
+
+      if (savedCart) {
+        const items = JSON.parse(savedCart);
+        setCart(items);
+
+        const amount = items.reduce(
+          (sum: number, item: any) =>
+            sum +
+            Number(item.price || 0) * Number(item.quantity || 1),
+          0
+        );
+
+        setTotal(amount);
+      }
+    } catch (error) {
+      console.log("Cart error:", error);
     }
   }, []);
 
-  const cartProducts = cart
-    .map((id) => products.find((product) => product.id === id))
-    .filter(Boolean) as Product[];
-
-  const total = cartProducts.reduce(
-    (sum, product) => sum + product.price,
-    0
-  );
-
   function placeOrder() {
-    if (!name || !phone || !address || !city || !pincode) {
-      alert("Please fill all the delivery details.");
+    if (!name || !phone || !address || !city || !state || !pincode) {
+      alert("Please fill all details.");
       return;
     }
 
-    if (cartProducts.length === 0) {
+    if (cart.length === 0) {
       alert("Your cart is empty.");
       return;
     }
 
-    const orderItems = cartProducts
-      .map(
-        (product, index) =>
-          `${index + 1}. ${product.name} - ₹${product.price}`
-      )
-      .join("\n");
+    let message = `🛍️ *NEW ORDER - BEEGIRL SHOPPING*%0A%0A`;
 
-    const message = `
-🛍️ *NEW ORDER - SINDHU SHOPPING*
+    message += `👤 *Customer Details*%0A`;
+    message += `Name: ${name}%0A`;
+    message += `Phone: ${phone}%0A`;
+    message += `Address: ${address}%0A`;
+    message += `City: ${city}%0A`;
+    message += `State: ${state}%0A`;
+    message += `Pincode: ${pincode}%0A%0A`;
 
-👤 *Customer Details*
-Name: ${name}
-Mobile: ${phone}
+    message += `🛒 *Order Details*%0A`;
 
-📍 *Delivery Address*
-${address}
-${city} - ${pincode}
+    cart.forEach((item: any, index: number) => {
+      const quantity = Number(item.quantity || 1);
+      const price = Number(item.price || 0);
+      const itemTotal = price * quantity;
 
-🛒 *Order Details*
-${orderItems}
+      message += `${index + 1}. ${item.name}%0A`;
+      message += `   Qty: ${quantity}%0A`;
+      message += `   Price: ₹${price}%0A`;
+      message += `   Total: ₹${itemTotal}%0A%0A`;
+    });
 
-💰 *Total: ₹${total}*
+    message += `💰 *TOTAL: ₹${total}*%0A%0A`;
+    message += `Thank you for shopping with Sindhu Shopping ❤️`;
 
-Thank you for shopping with Sindhu Shopping ❤️
-`;
+    /*
+      CHANGE THIS NUMBER TO YOUR WHATSAPP NUMBER.
 
-    const whatsappNumber = "916300267770";
+      IMPORTANT:
+      Include country code.
+      India = 91
 
-    const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-      message
-    )}`;
+      Example:
+      919876543210
+    */
 
-    window.open(whatsappURL, "_blank");
+    const whatsappNumber = "919876543210";
+
+    const whatsappURL =
+      `https://wa.me/${whatsappNumber}?text=${message}`;
+
+    window.location.href = whatsappURL;
   }
 
   return (
     <main
       style={{
-        minHeight: "100vh",
-        background: "#fff7f9",
+        maxWidth: "700px",
+        margin: "0 auto",
+        padding: "30px 20px",
         fontFamily: "Arial, sans-serif",
-        color: "#222",
-        paddingBottom: "50px",
       }}
     >
-      {/* HEADER */}
+      <h1 style={{ textAlign: "center" }}>
+        Sindhu Shopping
+      </h1>
 
-      <header
-        style={{
-          background: "#ffffff",
-          padding: "20px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: "1px solid #eee",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-        }}
-      >
-        <h1
-          style={{
-            margin: 0,
-            color: "#e91e63",
-            fontSize: "30px",
-          }}
-        >
-          Sindhu Shopping
-        </h1>
-
-        <a
-          href="/"
-          style={{
-            background: "#e91e63",
-            color: "#fff",
-            padding: "14px 22px",
-            borderRadius: "12px",
-            textDecoration: "none",
-            fontWeight: "bold",
-          }}
-        >
-          Continue Shopping
-        </a>
-      </header>
-
-      {/* CHECKOUT */}
+      <p style={{ textAlign: "center" }}>
+        Complete your order
+      </p>
 
       <section
         style={{
-          maxWidth: "900px",
-          margin: "40px auto",
+          marginTop: "30px",
           padding: "20px",
+          border: "1px solid #ddd",
+          borderRadius: "12px",
         }}
       >
-        <h2
-          style={{
-            fontSize: "36px",
-            textAlign: "center",
-            marginBottom: "30px",
-          }}
-        >
-          🛍️ Checkout
-        </h2>
+        <h2>Customer Details</h2>
 
-        {/* DELIVERY DETAILS */}
+        <input
+          placeholder="Full Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={inputStyle}
+        />
+
+        <input
+          placeholder="Phone Number"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          style={inputStyle}
+          type="tel"
+        />
+
+        <textarea
+          placeholder="Full Address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          style={{
+            ...inputStyle,
+            minHeight: "100px",
+          }}
+        />
+
+        <input
+          placeholder="City"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          style={inputStyle}
+        />
+
+        <input
+          placeholder="State"
+          value={state}
+          onChange={(e) => setState(e.target.value)}
+          style={inputStyle}
+        />
+
+        <input
+          placeholder="Pincode"
+          value={pincode}
+          onChange={(e) => setPincode(e.target.value)}
+          style={inputStyle}
+          type="number"
+        />
+      </section>
+
+      <section
+        style={{
+          marginTop: "25px",
+          padding: "20px",
+          border: "1px solid #ddd",
+          borderRadius: "12px",
+        }}
+      >
+        <h2>Order Summary</h2>
+
+        {cart.length === 0 ? (
+          <p>Your cart is empty.</p>
+        ) : (
+          cart.map((item: any, index: number) => (
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "10px 0",
+                borderBottom: "1px solid #eee",
+              }}
+            >
+              <span>
+                {item.name} × {item.quantity || 1}
+              </span>
+
+              <strong>
+                ₹
+                {Number(item.price || 0) *
+                  Number(item.quantity || 1)}
+              </strong>
+            </div>
+          ))
+        )}
 
         <div
           style={{
-            background: "#ffffff",
-            padding: "30px",
-            borderRadius: "20px",
-            marginBottom: "25px",
-            boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+            display: "flex",
+            justifyContent: "space-between",
+            marginTop: "25px",
+            fontSize: "24px",
+            fontWeight: "bold",
           }}
         >
-          <h3
-            style={{
-              fontSize: "25px",
-              marginTop: 0,
-            }}
-          >
-            Delivery Details
-          </h3>
+          <span>Total</span>
 
-          <input
-            type="text"
-            placeholder="Full Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={inputStyle}
-          />
-
-          <input
-            type="tel"
-            placeholder="Mobile Number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            style={inputStyle}
-          />
-
-          <textarea
-            placeholder="Full Address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            style={{
-              ...inputStyle,
-              minHeight: "110px",
-              resize: "vertical",
-            }}
-          />
-
-          <input
-            type="text"
-            placeholder="City"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            style={inputStyle}
-          />
-
-          <input
-            type="text"
-            placeholder="Pincode"
-            value={pincode}
-            onChange={(e) => setPincode(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-
-        {/* ORDER SUMMARY */}
-
-        <div
-          style={{
-            background: "#ffffff",
-            padding: "30px",
-            borderRadius: "20px",
-            boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-          }}
-        >
-          <h3
-            style={{
-              fontSize: "25px",
-              marginTop: 0,
-            }}
-          >
-            Order Summary
-          </h3>
-
-          {cartProducts.length === 0 ? (
-            <p>Your cart is empty.</p>
-          ) : (
-            <>
-              {cartProducts.map((product, index) => (
-                <div
-                  key={`${product.id}-${index}`}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "15px 0",
-                    borderBottom: "1px solid #eee",
-                    fontSize: "17px",
-                  }}
-                >
-                  <span>{product.name}</span>
-
-                  <strong>₹{product.price}</strong>
-                </div>
-              ))}
-
-              {/* TOTAL */}
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginTop: "25px",
-                  fontSize: "28px",
-                  fontWeight: "bold",
-                }}
-              >
-                <span>Total</span>
-
-                <span
-                  style={{
-                    color: "#e91e63",
-                  }}
-                >
-                  ₹{total}
-                </span>
-              </div>
-
-              {/* WHATSAPP ORDER BUTTON */}
-
-              <button
-                onClick={placeOrder}
-                style={{
-                  width: "100%",
-                  marginTop: "30px",
-                  padding: "18px",
-                  background: "#25D366",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "12px",
-                  fontSize: "20px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                }}
-              >
-                📱 Place Order on WhatsApp
-              </button>
-            </>
-          )}
+          <span style={{ color: "#e91e63" }}>
+            ₹{total}
+          </span>
         </div>
       </section>
 
-      {/* FOOTER */}
+      <button
+        onClick={placeOrder}
+        style={{
+          width: "100%",
+          marginTop: "30px",
+          padding: "18px",
+          background: "#25D366",
+          color: "#ffffff",
+          border: "none",
+          borderRadius: "12px",
+          fontSize: "20px",
+          fontWeight: "bold",
+          cursor: "pointer",
+        }}
+      >
+        📱 Place Order on WhatsApp
+      </button>
 
       <footer
         style={{
+          textAlign: "center",
+          marginTop: "50px",
+          padding: "30px",
           background: "#222",
           color: "#fff",
-          textAlign: "center",
-          padding: "40px 20px",
-          marginTop: "50px",
+          borderRadius: "12px",
         }}
       >
-        <h2>Sindhu Shopping</h2>
-
-        <p>
-          Women's Fashion • Sarees • Kurtis • Dresses • Tops
-        </p>
-
-        <p
-          style={{
-            color: "#aaa",
-          }}
-        >
-          © 2026 Sindhu Shopping. All rights reserved.
+        <h2>Beegirl Shopping</h2>
+        <p>Women's Fashion • Sarees • Kurtis</p>
+        <p style={{ color: "#aaa" }}>
+          © 2026 Sindhu Shopping
         </p>
       </footer>
     </main>
