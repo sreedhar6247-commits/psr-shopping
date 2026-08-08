@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const products = [
   {
@@ -32,24 +32,58 @@ const products = [
     emoji: "👚",
   },
 ];
-export default function HomePage() {
-const [cart, setCart] = useState<number[]>([]);
-export default function HomePage() {
-useEffect(() => {
-  const savedCart = localStorage.getItem("cart");
 
-  if (savedCart) {
-    setCart(JSON.parse(savedCart));
+export default function HomePage() {
+  const [cart, setCart] = useState<number[]>([]);
+  const [category, setCategory] = useState("All");
+
+  useEffect(() => {
+    const savedCart = localStorage.getItem("cart");
+
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+    }
+  }, []);
+
+  function addToCart(id: number) {
+    const newCart = [...cart, id];
+
+    setCart(newCart);
+    localStorage.setItem("cart", JSON.stringify(newCart));
   }
-}, []);
 
-function addToCart(id: number) {
-  const newCart = [...cart, id];
+  function removeFromCart(id: number) {
+    const index = cart.indexOf(id);
 
-  setCart(newCart);
-  localStorage.setItem("cart", JSON.stringify(newCart));
-}export default function HomePage() {
-  
+    if (index === -1) {
+      return;
+    }
+
+    const newCart = [...cart];
+    newCart.splice(index, 1);
+
+    setCart(newCart);
+    localStorage.setItem("cart", JSON.stringify(newCart));
+  }
+
+  const categories = [
+    "All",
+    "Sarees",
+    "Kurtis",
+    "Dresses",
+    "Tops",
+  ];
+
+  const filteredProducts =
+    category === "All"
+      ? products
+      : products.filter((product) => product.category === category);
+
+  const cartTotal = cart.reduce((total, id) => {
+    const product = products.find((item) => item.id === id);
+
+    return total + (product ? product.price : 0);
+  }, 0);
 
   return (
     <main
@@ -60,15 +94,15 @@ function addToCart(id: number) {
         color: "#222",
       }}
     >
-      {/* Header */}
+      {/* HEADER */}
       <header
         style={{
           background: "#ffffff",
-          padding: "20px",
+          padding: "18px 20px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          borderBottom: "1px solid #eee",
+          borderBottom: "1px solid #eeeeee",
           position: "sticky",
           top: 0,
           zIndex: 10,
@@ -78,39 +112,40 @@ function addToCart(id: number) {
           style={{
             margin: 0,
             color: "#e91e63",
-            fontSize: "30px",
+            fontSize: "28px",
           }}
         >
           Sindhu Shopping
         </h1>
 
-<a
-  href="/checkout"
-  style={{
-    fontSize: "18px",
-    fontWeight: "bold",
-    textDecoration: "none",
-    color: "#111",
-    cursor: "pointer",
-  }}
->
-  🛒 Cart ({cart.length})
-</a>
-        
+        <a
+          href="#cart"
+          style={{
+            textDecoration: "none",
+            color: "#ffffff",
+            background: "#e91e63",
+            padding: "10px 16px",
+            borderRadius: "8px",
+            fontWeight: "bold",
+          }}
+        >
+          🛒 Cart ({cart.length})
+        </a>
       </header>
 
-      {/* Hero */}
+      {/* HERO */}
       <section
         style={{
           textAlign: "center",
-          padding: "70px 20px",
-          background: "#ffe4ec",
+          padding: "45px 20px",
+          background: "#ffe4ed",
         }}
       >
         <h2
           style={{
-            fontSize: "44px",
-            margin: "0 0 15px",
+            fontSize: "36px",
+            margin: "0 0 10px",
+            color: "#d81b60",
           }}
         >
           Women's Fashion
@@ -118,131 +153,113 @@ function addToCart(id: number) {
 
         <p
           style={{
-            fontSize: "20px",
-            marginBottom: "25px",
-          }}
-        >
-          Beautiful clothes for every occasion
-        </p>
-
-        <a
-          href="#products"
-          style={{
-            display: "inline-block",
-            background: "#e91e63",
-            color: "white",
-            padding: "15px 30px",
-            borderRadius: "10px",
-            textDecoration: "none",
-            fontWeight: "bold",
             fontSize: "18px",
+            margin: 0,
+            color: "#555",
           }}
         >
-          Shop Now
-        </a>
+          Beautiful clothes at beautiful prices ❤️
+        </p>
       </section>
 
-      {/* Categories */}
-      <section style={{ padding: "45px 20px" }}>
-        <h2 style={{ textAlign: "center", fontSize: "32px" }}>
-          Shop by Category
-        </h2>
+      {/* CATEGORIES */}
+      <section
+        style={{
+          padding: "25px 20px 10px",
+          textAlign: "center",
+        }}
+      >
+        <h2>Shop by Category</h2>
 
         <div
           style={{
             display: "flex",
-            gap: "12px",
             justifyContent: "center",
+            gap: "10px",
             flexWrap: "wrap",
-            marginTop: "25px",
           }}
         >
-          {["Sarees", "Kurtis", "Dresses", "Tops", "New Arrivals"].map(
-            (category) => (
-              <div
-                key={category}
-                style={{
-                  background: "white",
-                  padding: "18px 28px",
-                  borderRadius: "12px",
-                  border: "1px solid #eee",
-                  fontWeight: "bold",
-                  fontSize: "18px",
-                }}
-              >
-                {category}
-              </div>
-            )
-          )}
+          {categories.map((item) => (
+            <button
+              key={item}
+              onClick={() => setCategory(item)}
+              style={{
+                padding: "10px 18px",
+                borderRadius: "20px",
+                border: "1px solid #e91e63",
+                background:
+                  category === item ? "#e91e63" : "#ffffff",
+                color:
+                  category === item ? "#ffffff" : "#e91e63",
+                cursor: "pointer",
+                fontWeight: "bold",
+              }}
+            >
+              {item}
+            </button>
+          ))}
         </div>
       </section>
 
-      {/* Products */}
+      {/* PRODUCTS */}
       <section
-        id="products"
         style={{
-          padding: "20px",
+          padding: "25px 20px",
           maxWidth: "1100px",
           margin: "auto",
         }}
       >
-        <h2
-          style={{
-            textAlign: "center",
-            fontSize: "32px",
-            marginBottom: "30px",
-          }}
-        >
-          🛍️ New Arrivals
-        </h2>
+        <h2 style={{ textAlign: "center" }}>Our Products</h2>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(220px, 1fr))",
             gap: "20px",
           }}
         >
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <div
               key={product.id}
               style={{
-                background: "white",
+                background: "#ffffff",
                 borderRadius: "15px",
-                padding: "18px",
-                boxShadow: "0 3px 12px rgba(0,0,0,0.08)",
+                padding: "20px",
+                textAlign: "center",
+                boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
               }}
             >
               <div
                 style={{
-                  height: "180px",
-                  background: "#f5f5f5",
-                  borderRadius: "12px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                   fontSize: "80px",
+                  background: "#fff0f5",
+                  borderRadius: "12px",
+                  padding: "20px",
+                  marginBottom: "15px",
                 }}
               >
                 {product.emoji}
               </div>
 
+              <h3 style={{ margin: "10px 0" }}>
+                {product.name}
+              </h3>
+
               <p
                 style={{
-                  color: "#888",
-                  marginBottom: "5px",
+                  color: "#777",
+                  margin: "5px 0",
                 }}
               >
                 {product.category}
               </p>
 
-              <h3 style={{ margin: "5px 0" }}>{product.name}</h3>
-
               <p
                 style={{
                   fontSize: "22px",
                   fontWeight: "bold",
-                  margin: "10px 0",
+                  color: "#e91e63",
                 }}
               >
                 ₹{product.price}
@@ -252,13 +269,13 @@ function addToCart(id: number) {
                 onClick={() => addToCart(product.id)}
                 style={{
                   width: "100%",
+                  padding: "12px",
                   background: "#e91e63",
-                  color: "white",
+                  color: "#ffffff",
                   border: "none",
-                  padding: "13px",
                   borderRadius: "8px",
-                  fontSize: "16px",
                   fontWeight: "bold",
+                  fontSize: "16px",
                   cursor: "pointer",
                 }}
               >
@@ -269,19 +286,118 @@ function addToCart(id: number) {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* CART */}
+      <section
+        id="cart"
+        style={{
+          padding: "30px 20px",
+          maxWidth: "800px",
+          margin: "auto",
+        }}
+      >
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "15px",
+            padding: "25px",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+          }}
+        >
+          <h2>🛒 Your Cart</h2>
+
+          {cart.length === 0 ? (
+            <p>Your cart is empty.</p>
+          ) : (
+            <>
+              {cart.map((id, index) => {
+                const product = products.find(
+                  (item) => item.id === id
+                );
+
+                if (!product) {
+                  return null;
+                }
+
+                return (
+                  <div
+                    key={`${id}-${index}`}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "12px 0",
+                      borderBottom: "1px solid #eeeeee",
+                    }}
+                  >
+                    <div>
+                      <strong>{product.name}</strong>
+                      <div style={{ color: "#e91e63" }}>
+                        ₹{product.price}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => removeFromCart(id)}
+                      style={{
+                        background: "#f44336",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                );
+              })}
+
+              <h2 style={{ textAlign: "right" }}>
+                Total: ₹{cartTotal}
+              </h2>
+
+              <a
+                href="/checkout"
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  textDecoration: "none",
+                  background: "#e91e63",
+                  color: "#ffffff",
+                  padding: "14px",
+                  borderRadius: "8px",
+                  fontWeight: "bold",
+                  fontSize: "18px",
+                  marginTop: "15px",
+                }}
+              >
+                Proceed to Checkout
+              </a>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* FOOTER */}
       <footer
         style={{
-          marginTop: "50px",
-          padding: "30px",
-          textAlign: "center",
           background: "#222",
-          color: "white",
+          color: "#ffffff",
+          textAlign: "center",
+          padding: "25px 20px",
+          marginTop: "30px",
         }}
       >
         <h3>Sindhu Shopping</h3>
-        <p>Women's Fashion Store</p>
-        <p>© 2026 Sindhu Shopping</p>
+
+        <p>
+          Women's Fashion • Sarees • Kurtis • Dresses • Tops
+        </p>
+
+        <p style={{ color: "#bbbbbb" }}>
+          © 2026 Sindhu Shopping. All rights reserved.
+        </p>
       </footer>
     </main>
   );
