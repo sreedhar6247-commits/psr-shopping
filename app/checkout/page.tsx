@@ -59,13 +59,48 @@ export default function CheckoutPage() {
 
   function placeOrder() {
     if (!name || !phone || !address || !city || !pincode) {
-      alert("Please fill all the details.");
+      alert("Please fill all the delivery details.");
       return;
     }
 
-    alert(
-      `Thank you ${name}! Your order has been received.\n\nTotal: ₹${total}`
-    );
+    if (cartProducts.length === 0) {
+      alert("Your cart is empty.");
+      return;
+    }
+
+    const orderItems = cartProducts
+      .map(
+        (product, index) =>
+          `${index + 1}. ${product.name} - ₹${product.price}`
+      )
+      .join("\n");
+
+    const message = `
+🛍️ *NEW ORDER - SINDHU SHOPPING*
+
+👤 *Customer Details*
+Name: ${name}
+Mobile: ${phone}
+
+📍 *Delivery Address*
+${address}
+${city} - ${pincode}
+
+🛒 *Order Details*
+${orderItems}
+
+💰 *Total: ₹${total}*
+
+Thank you for shopping with Sindhu Shopping ❤️
+`;
+
+    const whatsappNumber = "916300267770";
+
+    const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+      message
+    )}`;
+
+    window.open(whatsappURL, "_blank");
   }
 
   return (
@@ -78,7 +113,7 @@ export default function CheckoutPage() {
         paddingBottom: "50px",
       }}
     >
-      {/* Header */}
+      {/* HEADER */}
 
       <header
         style={{
@@ -88,6 +123,9 @@ export default function CheckoutPage() {
           justifyContent: "space-between",
           alignItems: "center",
           borderBottom: "1px solid #eee",
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
         }}
       >
         <h1
@@ -115,7 +153,7 @@ export default function CheckoutPage() {
         </a>
       </header>
 
-      {/* Checkout */}
+      {/* CHECKOUT */}
 
       <section
         style={{
@@ -134,7 +172,7 @@ export default function CheckoutPage() {
           🛍️ Checkout
         </h2>
 
-        {/* Customer Details */}
+        {/* DELIVERY DETAILS */}
 
         <div
           style={{
@@ -145,7 +183,14 @@ export default function CheckoutPage() {
             boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
           }}
         >
-          <h3 style={{ fontSize: "25px" }}>Delivery Details</h3>
+          <h3
+            style={{
+              fontSize: "25px",
+              marginTop: 0,
+            }}
+          >
+            Delivery Details
+          </h3>
 
           <input
             type="text"
@@ -169,7 +214,7 @@ export default function CheckoutPage() {
             onChange={(e) => setAddress(e.target.value)}
             style={{
               ...inputStyle,
-              minHeight: "100px",
+              minHeight: "110px",
               resize: "vertical",
             }}
           />
@@ -191,7 +236,7 @@ export default function CheckoutPage() {
           />
         </div>
 
-        {/* Order Summary */}
+        {/* ORDER SUMMARY */}
 
         <div
           style={{
@@ -201,7 +246,14 @@ export default function CheckoutPage() {
             boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
           }}
         >
-          <h3 style={{ fontSize: "25px" }}>Order Summary</h3>
+          <h3
+            style={{
+              fontSize: "25px",
+              marginTop: 0,
+            }}
+          >
+            Order Summary
+          </h3>
 
           {cartProducts.length === 0 ? (
             <p>Your cart is empty.</p>
@@ -213,8 +265,10 @@ export default function CheckoutPage() {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
+                    alignItems: "center",
                     padding: "15px 0",
                     borderBottom: "1px solid #eee",
+                    fontSize: "17px",
                   }}
                 >
                   <span>{product.name}</span>
@@ -223,18 +277,29 @@ export default function CheckoutPage() {
                 </div>
               ))}
 
+              {/* TOTAL */}
+
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   marginTop: "25px",
-                  fontSize: "25px",
+                  fontSize: "28px",
                   fontWeight: "bold",
                 }}
               >
                 <span>Total</span>
-                <span style={{ color: "#e91e63" }}>₹{total}</span>
+
+                <span
+                  style={{
+                    color: "#e91e63",
+                  }}
+                >
+                  ₹{total}
+                </span>
               </div>
+
+              {/* WHATSAPP ORDER BUTTON */}
 
               <button
                 onClick={placeOrder}
@@ -242,7 +307,7 @@ export default function CheckoutPage() {
                   width: "100%",
                   marginTop: "30px",
                   padding: "18px",
-                  background: "#e91e63",
+                  background: "#25D366",
                   color: "#ffffff",
                   border: "none",
                   borderRadius: "12px",
@@ -251,14 +316,14 @@ export default function CheckoutPage() {
                   cursor: "pointer",
                 }}
               >
-                Place Order
+                📱 Place Order on WhatsApp
               </button>
             </>
           )}
         </div>
       </section>
 
-      {/* Footer */}
+      {/* FOOTER */}
 
       <footer
         style={{
@@ -275,7 +340,11 @@ export default function CheckoutPage() {
           Women's Fashion • Sarees • Kurtis • Dresses • Tops
         </p>
 
-        <p style={{ color: "#aaa" }}>
+        <p
+          style={{
+            color: "#aaa",
+          }}
+        >
           © 2026 Sindhu Shopping. All rights reserved.
         </p>
       </footer>
