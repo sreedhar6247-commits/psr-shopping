@@ -32,9 +32,9 @@ const products = [
     emoji: "👚",
   },
 ];
-
+export default function HomePage() {
 const [cart, setCart] = useState<number[]>([]);
-
+export default function HomePage() {
 useEffect(() => {
   const savedCart = localStorage.getItem("cart");
 
@@ -48,7 +48,7 @@ function addToCart(id: number) {
 
   setCart(newCart);
   localStorage.setItem("cart", JSON.stringify(newCart));
-}
+}export default function HomePage() {
   
 
   return (
