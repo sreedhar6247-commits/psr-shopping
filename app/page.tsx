@@ -20,7 +20,7 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCart, setShowCart] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/products")
@@ -30,24 +30,38 @@ export default function Home() {
         setLoading(false);
       })
       .catch((error) => {
-        console.error(error);
+        console.error("Error loading products:", error);
         setLoading(false);
       });
   }, []);
 
   function addToCart(product: Product) {
     setCart((currentCart) => {
-      const existing = currentCart.find((item) => item.id === product.id);
+      const existing = currentCart.find(
+        (item) => item.id === product.id
+      );
 
       if (existing) {
         return currentCart.map((item) =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? {
+                ...item,
+                quantity: Math.min(
+                  item.quantity + 1,
+                  product.stock
+                ),
+              }
             : item
         );
       }
 
-      return [...currentCart, { ...product, quantity: 1 }];
+      return [
+        ...currentCart,
+        {
+          ...product,
+          quantity: 1,
+        },
+      ];
     });
   }
 
@@ -55,7 +69,13 @@ export default function Home() {
     setCart((currentCart) =>
       currentCart.map((item) =>
         item.id === id
-          ? { ...item, quantity: item.quantity + 1 }
+          ? {
+              ...item,
+              quantity: Math.min(
+                item.quantity + 1,
+                item.stock
+              ),
+            }
           : item
       )
     );
@@ -66,10 +86,19 @@ export default function Home() {
       currentCart
         .map((item) =>
           item.id === id
-            ? { ...item, quantity: item.quantity - 1 }
+            ? {
+                ...item,
+                quantity: item.quantity - 1,
+              }
             : item
         )
         .filter((item) => item.quantity > 0)
+    );
+  }
+
+  function removeFromCart(id: number) {
+    setCart((currentCart) =>
+      currentCart.filter((item) => item.id !== id)
     );
   }
 
@@ -87,27 +116,31 @@ export default function Home() {
     <main
       style={{
         minHeight: "100vh",
-        background: "#fff7f9",
-        padding: "25px",
-        fontFamily: "Arial, sans-serif",
+        background: "#fff7fa",
+        padding: "30px",
+        fontFamily:
+          "Arial, Helvetica, sans-serif",
       }}
     >
+      {/* HEADER */}
       <header
         style={{
-          maxWidth: "1100px",
-          margin: "0 auto 35px",
+          maxWidth: "1200px",
+          margin: "0 auto",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           gap: "20px",
+          marginBottom: "35px",
         }}
       >
         <div>
           <h1
             style={{
               margin: 0,
-              fontSize: "38px",
-              color: "#222",
+              fontSize: "42px",
+              fontWeight: 800,
+              color: "#171717",
             }}
           >
             Sindhu Shopping
@@ -116,23 +149,26 @@ export default function Home() {
           <p
             style={{
               marginTop: "8px",
+              marginBottom: 0,
               fontSize: "20px",
-              color: "#666",
+              color: "#555",
             }}
           >
-            Women&apos;s Clothing
+            Women's Clothing
           </p>
         </div>
 
+        {/* CART BUTTON */}
         <button
-          onClick={() => setShowCart(true)}
+          onClick={() => setCartOpen(true)}
           style={{
             border: "none",
-            borderRadius: "12px",
-            background: "#111",
+            background: "#171717",
             color: "white",
+            borderRadius: "12px",
             padding: "14px 20px",
             fontSize: "17px",
+            fontWeight: "bold",
             cursor: "pointer",
           }}
         >
@@ -140,21 +176,40 @@ export default function Home() {
         </button>
       </header>
 
+      {/* PRODUCTS */}
       <section
         style={{
-          maxWidth: "1100px",
+          maxWidth: "1200px",
           margin: "0 auto",
         }}
       >
         {loading ? (
-          <p style={{ fontSize: "20px" }}>Loading products...</p>
+          <p
+            style={{
+              fontSize: "20px",
+              textAlign: "center",
+              padding: "50px",
+            }}
+          >
+            Loading products...
+          </p>
+        ) : products.length === 0 ? (
+          <p
+            style={{
+              fontSize: "20px",
+              textAlign: "center",
+              padding: "50px",
+            }}
+          >
+            No products available.
+          </p>
         ) : (
           <div
             style={{
               display: "grid",
               gridTemplateColumns:
-                "repeat(auto-fit, minmax(230px, 1fr))",
-              gap: "22px",
+                "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: "24px",
             }}
           >
             {products.map((product) => (
@@ -162,247 +217,475 @@ export default function Home() {
                 key={product.id}
                 style={{
                   background: "white",
-                  borderRadius: "18px",
-                  padding: "14px",
-                  boxShadow: "0 4px 18px rgba(0,0,0,0.08)",
+                  border: "1px solid #e5e5e5",
+                  borderRadius: "16px",
+                  overflow: "hidden",
+                  boxShadow:
+                    "0 4px 15px rgba(0,0,0,0.06)",
                 }}
               >
-                <img
-                  src={product.image_url}
-                  alt={product.name}
+                {/* PRODUCT IMAGE */}
+                <div
                   style={{
                     width: "100%",
-                    height: "300px",
-                    objectFit: "cover",
-                    borderRadius: "14px",
-                  }}
-                />
-
-                <h2
-                  style={{
-                    fontSize: "20px",
-                    margin: "15px 0 8px",
+                    height: "280px",
+                    background: "#eeeeee",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  {product.name}
-                </h2>
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        color: "#888",
+                        fontSize: "22px",
+                      }}
+                    >
+                      Product Image
+                    </span>
+                  )}
+                </div>
 
-                <p
+                {/* PRODUCT DETAILS */}
+                <div
                   style={{
-                    color: "#777",
-                    margin: "5px 0",
+                    padding: "18px",
                   }}
                 >
-                  {product.category}
-                </p>
+                  <h2
+                    style={{
+                      margin: "0 0 8px",
+                      fontSize: "22px",
+                      color: "#171717",
+                    }}
+                  >
+                    {product.name}
+                  </h2>
 
-                <p
-                  style={{
-                    color: "#555",
-                    minHeight: "45px",
-                  }}
-                >
-                  {product.description}
-                </p>
+                  <p
+                    style={{
+                      margin: "5px 0",
+                      color: "#777",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {product.category}
+                  </p>
 
-                <strong
-                  style={{
-                    display: "block",
-                    fontSize: "24px",
-                    margin: "12px 0",
-                  }}
-                >
-                  ₹{product.price}
-                </strong>
+                  <p
+                    style={{
+                      margin: "12px 0",
+                      color: "#444",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {product.description}
+                  </p>
 
-                <button
-                  onClick={() => addToCart(product)}
-                  style={{
-                    width: "100%",
-                    padding: "13px",
-                    border: "none",
-                    borderRadius: "10px",
-                    background: "#111",
-                    color: "white",
-                    fontSize: "16px",
-                    cursor: "pointer",
-                  }}
-                >
-                  🛒 Add to Cart
-                </button>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        "space-between",
+                      alignItems: "center",
+                      gap: "10px",
+                      marginTop: "18px",
+                    }}
+                  >
+                    <strong
+                      style={{
+                        fontSize: "24px",
+                        color: "#111",
+                      }}
+                    >
+                      ₹{product.price}
+                    </strong>
+
+                    <button
+                      onClick={() =>
+                        addToCart(product)
+                      }
+                      disabled={product.stock <= 0}
+                      style={{
+                        border: "none",
+                        background:
+                          product.stock > 0
+                            ? "#171717"
+                            : "#aaa",
+                        color: "white",
+                        borderRadius: "10px",
+                        padding:
+                          "12px 16px",
+                        fontSize: "15px",
+                        fontWeight: "bold",
+                        cursor:
+                          product.stock > 0
+                            ? "pointer"
+                            : "not-allowed",
+                      }}
+                    >
+                      {product.stock > 0
+                        ? "Add to Cart"
+                        : "Out of Stock"}
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         )}
       </section>
 
-      {showCart && (
+      {/* CART OVERLAY */}
+      {cartOpen && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "flex-end",
+            background:
+              "rgba(0,0,0,0.45)",
             zIndex: 1000,
           }}
-          onClick={() => setShowCart(false)}
+          onClick={() => setCartOpen(false)}
         >
+          {/* CART PANEL */}
           <div
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) =>
+              e.stopPropagation()
+            }
             style={{
-              width: "min(430px, 100%)",
+              position: "absolute",
+              right: 0,
+              top: 0,
               height: "100%",
+              width: "min(500px, 100%)",
               background: "white",
-              padding: "25px",
-              overflowY: "auto",
+              padding: "30px",
               boxSizing: "border-box",
+              overflowY: "auto",
             }}
           >
+            {/* CART HEADER */}
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent:
+                  "space-between",
                 alignItems: "center",
+                marginBottom: "30px",
               }}
             >
-              <h2>🛒 Your Cart</h2>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "32px",
+                }}
+              >
+                🛒 Your Cart
+              </h2>
 
               <button
-                onClick={() => setShowCart(false)}
+                onClick={() =>
+                  setCartOpen(false)
+                }
                 style={{
                   border: "none",
-                  background: "#eee",
+                  background: "#eeeeee",
                   borderRadius: "50%",
-                  width: "38px",
-                  height: "38px",
-                  fontSize: "20px",
+                  width: "48px",
+                  height: "48px",
+                  fontSize: "28px",
                   cursor: "pointer",
                 }}
               >
-                ✕
+                ×
               </button>
             </div>
 
+            {/* EMPTY CART */}
             {cart.length === 0 ? (
-              <p style={{ color: "#777", marginTop: "30px" }}>
-                Your cart is empty.
-              </p>
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "60px 10px",
+                  color: "#777",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "60px",
+                  }}
+                >
+                  🛒
+                </div>
+
+                <h3
+                  style={{
+                    fontSize: "24px",
+                    color: "#333",
+                  }}
+                >
+                  Your cart is empty
+                </h3>
+
+                <p>
+                  Add some products to your
+                  cart.
+                </p>
+              </div>
             ) : (
               <>
+                {/* CART ITEMS */}
                 {cart.map((item) => (
                   <div
                     key={item.id}
                     style={{
                       display: "flex",
-                      gap: "12px",
-                      padding: "15px 0",
-                      borderBottom: "1px solid #eee",
+                      gap: "15px",
+                      paddingBottom: "20px",
+                      marginBottom: "20px",
+                      borderBottom:
+                        "1px solid #eeeeee",
                     }}
                   >
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
+                    <div
                       style={{
-                        width: "80px",
-                        height: "90px",
-                        objectFit: "cover",
-                        borderRadius: "8px",
+                        width: "100px",
+                        height: "120px",
+                        flexShrink: 0,
+                        background: "#eeeeee",
+                        borderRadius: "10px",
+                        overflow: "hidden",
                       }}
-                    />
+                    >
+                      {item.image_url ? (
+                        <img
+                          src={
+                            item.image_url
+                          }
+                          alt={item.name}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit:
+                              "cover",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            display: "flex",
+                            height: "100%",
+                            alignItems:
+                              "center",
+                            justifyContent:
+                              "center",
+                            color: "#888",
+                            fontSize: "12px",
+                            textAlign:
+                              "center",
+                          }}
+                        >
+                          Product
+                        </div>
+                      )}
+                    </div>
 
-                    <div style={{ flex: 1 }}>
-                      <strong>{item.name}</strong>
+                    <div
+                      style={{
+                        flex: 1,
+                      }}
+                    >
+                      <h3
+                        style={{
+                          margin:
+                            "0 0 8px",
+                          fontSize: "19px",
+                        }}
+                      >
+                        {item.name}
+                      </h3>
 
-                      <p style={{ margin: "6px 0" }}>
+                      <p
+                        style={{
+                          margin:
+                            "0 0 12px",
+                          fontSize: "18px",
+                        }}
+                      >
                         ₹{item.price}
                       </p>
 
+                      {/* QUANTITY */}
                       <div
                         style={{
                           display: "flex",
-                          alignItems: "center",
-                          gap: "10px",
+                          alignItems:
+                            "center",
+                          gap: "12px",
                         }}
                       >
                         <button
-                          onClick={() => decreaseQuantity(item.id)}
+                          onClick={() =>
+                            decreaseQuantity(
+                              item.id
+                            )
+                          }
                           style={{
-                            width: "30px",
-                            height: "30px",
-                            border: "1px solid #ddd",
-                            borderRadius: "6px",
-                            background: "white",
-                            cursor: "pointer",
+                            width: "40px",
+                            height: "40px",
+                            border:
+                              "1px solid #ddd",
+                            background:
+                              "white",
+                            borderRadius:
+                              "8px",
+                            fontSize:
+                              "22px",
+                            cursor:
+                              "pointer",
                           }}
                         >
                           −
                         </button>
 
-                        <span>{item.quantity}</span>
+                        <strong
+                          style={{
+                            fontSize:
+                              "18px",
+                            minWidth:
+                              "20px",
+                            textAlign:
+                              "center",
+                          }}
+                        >
+                          {item.quantity}
+                        </strong>
 
                         <button
-                          onClick={() => increaseQuantity(item.id)}
+                          onClick={() =>
+                            increaseQuantity(
+                              item.id
+                            )
+                          }
                           style={{
-                            width: "30px",
-                            height: "30px",
-                            border: "1px solid #ddd",
-                            borderRadius: "6px",
-                            background: "white",
-                            cursor: "pointer",
+                            width: "40px",
+                            height: "40px",
+                            border:
+                              "1px solid #ddd",
+                            background:
+                              "white",
+                            borderRadius:
+                              "8px",
+                            fontSize:
+                              "22px",
+                            cursor:
+                              "pointer",
                           }}
                         >
                           +
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            removeFromCart(
+                              item.id
+                            )
+                          }
+                          style={{
+                            border: "none",
+                            background:
+                              "transparent",
+                            color: "#d11",
+                            cursor:
+                              "pointer",
+                            marginLeft:
+                              "auto",
+                          }}
+                        >
+                          Remove
                         </button>
                       </div>
                     </div>
                   </div>
                 ))}
 
+                {/* TOTAL */}
                 <div
                   style={{
-                    marginTop: "25px",
-                    paddingTop: "20px",
-                    borderTop: "2px solid #111",
+                    borderTop:
+                      "3px solid #171717",
+                    paddingTop: "25px",
+                    marginTop: "10px",
                   }}
                 >
-                  <h2>Total: ₹{cartTotal}</h2>
-
-                  <button
+                  <div
                     style={{
-                      width: "100%",
-                      padding: "15px",
-                      border: "none",
-                      borderRadius: "10px",
-                      background: "#25D366",
-                      color: "white",
-                      fontSize: "17px",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      const message = cart
-                        .map(
-                          (item) =>
-                            `${item.name} x ${item.quantity} = ₹${
-                              item.price * item.quantity
-                            }`
-                        )
-                        .join("\n");
-
-                      const whatsappMessage =
-                        `Hello Sindhu Shopping! I want to order:\n\n${message}\n\nTotal: ₹${cartTotal}`;
-
-                      window.open(
-                        `https://wa.me/?text=${encodeURIComponent(
-                          whatsappMessage
-                        )}`,
-                        "_blank"
-                      );
+                      display: "flex",
+                      justifyContent:
+                        "space-between",
+                      alignItems: "center",
                     }}
                   >
-                    📲 Order on WhatsApp
-                  </button>
+                    <strong
+                      style={{
+                        fontSize: "28px",
+                      }}
+                    >
+                      Total
+                    </strong>
+
+                    <strong
+                      style={{
+                        fontSize: "30px",
+                      }}
+                    >
+                      ₹{cartTotal}
+                    </strong>
+                  </div>
+
+                  {/* NO WHATSAPP BUTTON */}
+                  <div
+                    style={{
+                      marginTop: "25px",
+                      padding: "18px",
+                      background: "#f5f5f5",
+                      borderRadius: "12px",
+                      textAlign: "center",
+                      color: "#666",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "15px",
+                      }}
+                    >
+                      Your cart is ready.
+                    </p>
+
+                    <p
+                      style={{
+                        margin:
+                          "8px 0 0",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Checkout will be
+                      added here.
+                    </p>
+                  </div>
                 </div>
               </>
             )}
@@ -411,4 +694,4 @@ export default function Home() {
       )}
     </main>
   );
-        }
+          }
