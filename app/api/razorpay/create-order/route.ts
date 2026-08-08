@@ -1,11 +1,8 @@
-
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-
-    const amount = Number(body.amount);
+    const { amount } = await req.json();
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
@@ -24,7 +21,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert rupees to paise
+    // Razorpay expects the amount in paise.
+    // Example: ₹1299 = 129900 paise
     const amountInPaise = Math.round(amount * 100);
 
     const auth = Buffer.from(
@@ -42,7 +40,8 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           amount: amountInPaise,
           currency: "INR",
-          receipt: `sindhu_${Date.now()}`,
+          receipt: `receipt_${Date.now()}`,
+          payment_capture: 1,
         }),
       }
     );
@@ -63,16 +62,15 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      orderId: data.id,
+      id: data.id,
       amount: data.amount,
       currency: data.currency,
-      keyId,
     });
   } catch (error) {
     console.error("Create order error:", error);
 
     return NextResponse.json(
-      { error: "Unable to create payment order" },
+      { error: "Something went wrong" },
       { status: 500 }
     );
   }
