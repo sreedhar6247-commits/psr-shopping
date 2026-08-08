@@ -20,15 +20,7 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [cartOpen, setCartOpen] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-
-  const [customerName, setCustomerName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [pincode, setPincode] = useState("");
 
   useEffect(() => {
     fetch("/api/products")
@@ -43,7 +35,6 @@ export default function Home() {
       });
   }, []);
 
-  // ADD TO CART
   function addToCart(product: Product) {
     setCart((currentCart) => {
       const existing = currentCart.find(
@@ -71,7 +62,6 @@ export default function Home() {
     });
   }
 
-  // INCREASE QUANTITY
   function increaseQuantity(id: number) {
     setCart((currentCart) =>
       currentCart.map((item) =>
@@ -85,7 +75,6 @@ export default function Home() {
     );
   }
 
-  // DECREASE QUANTITY
   function decreaseQuantity(id: number) {
     setCart((currentCart) =>
       currentCart
@@ -101,82 +90,22 @@ export default function Home() {
     );
   }
 
-  // REMOVE ITEM
   function removeFromCart(id: number) {
     setCart((currentCart) =>
       currentCart.filter((item) => item.id !== id)
     );
   }
 
-  // CART COUNT
   const cartCount = cart.reduce(
     (total, item) => total + item.quantity,
     0
   );
 
-  // CART TOTAL
   const cartTotal = cart.reduce(
     (total, item) =>
       total + item.price * item.quantity,
     0
   );
-
-  // OPEN CHECKOUT
-  function openCheckout() {
-    if (cart.length === 0) {
-      return;
-    }
-
-    setCartOpen(false);
-    setCheckoutOpen(true);
-  }
-
-  // CLOSE CHECKOUT
-  function closeCheckout() {
-    setCheckoutOpen(false);
-  }
-
-  // CONTINUE TO PAYMENT
-  function continueToPayment() {
-    if (!customerName.trim()) {
-      alert("Please enter your name.");
-      return;
-    }
-
-    if (!phone.trim()) {
-      alert("Please enter your mobile number.");
-      return;
-    }
-
-    if (phone.length < 10) {
-      alert("Please enter a valid mobile number.");
-      return;
-    }
-
-    if (!address.trim()) {
-      alert("Please enter your delivery address.");
-      return;
-    }
-
-    if (!city.trim()) {
-      alert("Please enter your city.");
-      return;
-    }
-
-    if (!pincode.trim()) {
-      alert("Please enter your PIN code.");
-      return;
-    }
-
-    if (pincode.length !== 6) {
-      alert("Please enter a valid 6-digit PIN code.");
-      return;
-    }
-
-    alert(
-      "Customer details saved successfully.\n\nOnline payment will be connected in the next step."
-    );
-  }
 
   return (
     <main
@@ -220,7 +149,6 @@ export default function Home() {
           </p>
         </div>
 
-        {/* CART BUTTON */}
         <button
           onClick={() => setCartOpen(true)}
           style={{
@@ -286,7 +214,6 @@ export default function Home() {
                   overflow: "hidden",
                 }}
               >
-                {/* PRODUCT IMAGE */}
                 {product.image_url ? (
                   <img
                     src={product.image_url}
@@ -382,10 +309,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* ========================= */}
-      {/* CART WINDOW */}
-      {/* ========================= */}
-
+      {/* CART MODAL */}
       {cartOpen && (
         <div
           style={{
@@ -458,8 +382,7 @@ export default function Home() {
                 <h3>Your cart is empty</h3>
 
                 <p style={{ color: "#777" }}>
-                  Add some beautiful clothes to your
-                  cart.
+                  Add some beautiful clothes to your cart.
                 </p>
 
                 <button
@@ -537,7 +460,6 @@ export default function Home() {
                           ₹{item.price}
                         </p>
 
-                        {/* QUANTITY */}
                         <div
                           style={{
                             display: "flex",
@@ -554,7 +476,8 @@ export default function Home() {
                               width: "42px",
                               height: "42px",
                               background: "#fff",
-                              border: "1px solid #ccc",
+                              border:
+                                "1px solid #ccc",
                               borderRadius: "8px",
                               fontSize: "22px",
                               cursor: "pointer",
@@ -581,7 +504,8 @@ export default function Home() {
                               width: "42px",
                               height: "42px",
                               background: "#fff",
-                              border: "1px solid #ccc",
+                              border:
+                                "1px solid #ccc",
                               borderRadius: "8px",
                               fontSize: "22px",
                               cursor: "pointer",
@@ -630,13 +554,16 @@ export default function Home() {
                   }}
                 >
                   <h2>Total</h2>
-
                   <h2>₹{cartTotal}</h2>
                 </div>
 
-                {/* PROCEED TO CHECKOUT */}
+                {/* CHECKOUT */}
                 <button
-                  onClick={openCheckout}
+                  onClick={() => {
+                    alert(
+                      "Online payment checkout will be connected here."
+                    );
+                  }}
                   style={{
                     width: "100%",
                     marginTop: "20px",
@@ -657,88 +584,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      {/* ========================= */}
-      {/* CHECKOUT WINDOW */}
-      {/* ========================= */}
-
-      {checkoutOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.55)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "20px",
-            zIndex: 2000,
-          }}
-        >
-          <div
-            style={{
-              background: "#fff",
-              width: "100%",
-              maxWidth: "750px",
-              maxHeight: "92vh",
-              overflowY: "auto",
-              borderRadius: "18px",
-              padding: "30px",
-            }}
-          >
-            {/* CHECKOUT HEADER */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "25px",
-              }}
-            >
-              <div>
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: "32px",
-                  }}
-                >
-                  🧾 Checkout
-                </h2>
-
-                <p
-                  style={{
-                    color: "#777",
-                    marginTop: "8px",
-                  }}
-                >
-                  Enter your delivery details
-                </p>
-              </div>
-
-              <button
-                onClick={closeCheckout}
-                style={{
-                  border: "none",
-                  background: "#eee",
-                  borderRadius: "50%",
-                  width: "50px",
-                  height: "50px",
-                  fontSize: "25px",
-                  cursor: "pointer",
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            {/* CUSTOMER DETAILS */}
-            <h3
-              style={{
-                fontSize: "22px",
-                marginBottom: "15px",
-              }}
-            >
-              Customer Details
-            </h3>
-
-                  {
+    </main>
+  );
+                    }
