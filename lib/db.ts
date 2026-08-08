@@ -1,9 +1,9 @@
-// PostgreSQL/ORM connection placeholder.
-// Add Prisma or another server-side database client here.
-// Never expose DATABASE_URL to the browser.
+import { neon } from "@neondatabase/serverless";
 
-export function databaseConfig() {
-  return {
-    configured: Boolean(process.env.DATABASE_URL)
-  };
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is not configured");
 }
+
+export const sql = neon(databaseUrl);
