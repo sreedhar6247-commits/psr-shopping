@@ -73,9 +73,19 @@ export default function HomePage() {
           Sindhu Shopping
         </h1>
 
-        <div style={{ fontSize: "18px", fontWeight: "bold" }}>
-          🛒 Cart ({cart.length})
-        </div>
+<a
+  href="/checkout"
+  style={{
+    fontSize: "18px",
+    fontWeight: "bold",
+    textDecoration: "none",
+    color: "#111",
+    cursor: "pointer",
+  }}
+>
+  🛒 Cart ({cart.length})
+</a>
+        
       </header>
 
       {/* Hero */}
