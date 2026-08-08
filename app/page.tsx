@@ -638,7 +638,7 @@ export default function Home() {
                 lineHeight: 1.6,
               }}
             >
-              Thank you for shopping with Sindhu Shopping.
+              Thank you for shopping with Bee Girl Shopping.
               <br />
               We have received your order details.
             </p>
@@ -668,7 +668,7 @@ export default function Home() {
       {/* FOOTER */}
       <footer style={styles.footer}>
         <h2 style={{ fontSize: "34px", marginBottom: "20px" }}>
-          Sindhu Shopping
+          Bee Girl Shopping
         </h2>
 
         <p
@@ -689,7 +689,7 @@ export default function Home() {
             marginTop: "35px",
           }}
         >
-          © 2026 Sindhu Shopping. All rights reserved.
+          © 2026 Bee Girl Shopping. All rights reserved.
         </p>
       </footer>
     </main>
