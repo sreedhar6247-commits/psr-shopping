@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import Razorpay from "razorpay";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const { amount } = await req.json();
+    const { amount } = await request.json();
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
@@ -21,56 +22,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Razorpay expects the amount in paise.
-    // Example: ₹1299 = 129900 paise
-    const amountInPaise = Math.round(amount * 100);
+    const razorpay = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    });
 
-    const auth = Buffer.from(
-      `${keyId}:${keySecret}`
-    ).toString("base64");
-
-    const response = await fetch(
-      "https://api.razorpay.com/v1/orders",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${auth}`,
-        },
-        body: JSON.stringify({
-          amount: amountInPaise,
-          currency: "INR",
-          receipt: `receipt_${Date.now()}`,
-          payment_capture: 1,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Razorpay error:", data);
-
-      return NextResponse.json(
-        {
-          error:
-            data?.error?.description ||
-            "Failed to create Razorpay order",
-        },
-        { status: response.status }
-      );
-    }
+    const order = await razorpay.orders.create({
+      amount: Math.round(amount * 100),
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
+      payment_capture: true,
+    });
 
     return NextResponse.json({
-      id: data.id,
-      amount: data.amount,
-      currency: data.currency,
+      id: order.id,
+      amount: order.amount,
+      currency: order.currency,
     });
   } catch (error) {
-    console.error("Create order error:", error);
+    console.error("Razorpay order error:", error);
 
     return NextResponse.json(
-      { error: "Something went wrong" },
+      { error: "Unable to create Razorpay order" },
       { status: 500 }
     );
   }
