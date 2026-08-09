@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Bee Girl Shopping",
+  title: "BeeGirl Shopping",
   description: "Women's Fashion",
 };
 
