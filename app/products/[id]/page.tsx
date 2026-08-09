@@ -55,9 +55,11 @@ export default function ProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+
   const product = products[id];
 
   const [size, setSize] = useState("M");
+  const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
 
   if (!product) {
@@ -73,57 +75,61 @@ export default function ProductPage({
         <h1>Product Not Found</h1>
         <p>The product you are looking for does not exist.</p>
 
-        <a
-          href="/products"
-          style={{
-            display: "inline-block",
-            marginTop: 20,
-            padding: "12px 24px",
-            background: "#111",
-            color: "#fff",
-            borderRadius: 8,
-            textDecoration: "none",
-          }}
-        >
-          Back to Products
-        </a>
+        <a href="/products">← Back to Products</a>
       </main>
     );
   }
 
   function addToCart() {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const existingCart = JSON.parse(
+      localStorage.getItem("cart") || "[]"
+    );
 
-    cart.push({
-      id,
-      name: product.name,
-      price: product.price,
-      size,
-      image: product.image,
-      quantity: 1,
-    });
+    const existingItemIndex = existingCart.findIndex(
+      (item: any) => item.id === id && item.size === size
+    );
 
-    localStorage.setItem("cart", JSON.stringify(cart));
+    if (existingItemIndex >= 0) {
+      existingCart[existingItemIndex].quantity += quantity;
+    } else {
+      existingCart.push({
+        id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        size,
+        quantity,
+      });
+    }
+
+    localStorage.setItem("cart", JSON.stringify(existingCart));
+
     setAdded(true);
+
+    setTimeout(() => {
+      setAdded(false);
+    }, 2000);
   }
 
   return (
     <main
       style={{
         maxWidth: 1100,
-        margin: "30px auto",
-        padding: "20px",
+        margin: "0 auto",
+        padding: "30px 20px",
+        fontFamily: "Arial, sans-serif",
       }}
     >
       <a
         href="/products"
         style={{
-          color: "#555",
           textDecoration: "none",
-          fontSize: 16,
+          color: "#555",
+          display: "inline-block",
+          marginBottom: 25,
         }}
       >
-        ← Back to PSR Shopping
+        ← Back to Products
       </a>
 
       <div
@@ -131,19 +137,17 @@ export default function ProductPage({
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: 40,
-          marginTop: 30,
+          alignItems: "start",
         }}
       >
-        {/* Product Image */}
+        {/* PRODUCT IMAGE */}
+
         <div
           style={{
-            background: "#f5f5f5",
-            borderRadius: 16,
-            overflow: "hidden",
-            minHeight: 450,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            background: "#f8f8f8",
+            borderRadius: 15,
+            padding: 20,
+            textAlign: "center",
           }}
         >
           <img
@@ -151,20 +155,21 @@ export default function ProductPage({
             alt={product.name}
             style={{
               width: "100%",
-              height: 450,
-              objectFit: "cover",
+              maxHeight: 550,
+              objectFit: "contain",
+              borderRadius: 12,
             }}
           />
         </div>
 
-        {/* Product Details */}
-        <div style={{ padding: "10px 0" }}>
+        {/* PRODUCT DETAILS */}
+
+        <div>
           <p
             style={{
               color: "#777",
               textTransform: "uppercase",
               fontSize: 14,
-              letterSpacing: 1,
             }}
           >
             {product.category}
@@ -173,7 +178,7 @@ export default function ProductPage({
           <h1
             style={{
               fontSize: 36,
-              margin: "10px 0",
+              marginBottom: 15,
             }}
           >
             {product.name}
@@ -182,7 +187,8 @@ export default function ProductPage({
           <h2
             style={{
               fontSize: 28,
-              margin: "20px 0",
+              color: "#e91e63",
+              marginBottom: 20,
             }}
           >
             ₹{product.price}
@@ -192,38 +198,41 @@ export default function ProductPage({
             style={{
               color: "#555",
               lineHeight: 1.7,
-              fontSize: 17,
+              marginBottom: 30,
             }}
           >
             {product.description}
           </p>
 
-          {/* Size */}
-          <div style={{ marginTop: 30 }}>
-            <h3>Select Size</h3>
+          {/* SIZE */}
+
+          <div style={{ marginBottom: 25 }}>
+            <h3 style={{ marginBottom: 12 }}>Select Size</h3>
 
             <div
               style={{
                 display: "flex",
                 gap: 10,
-                marginTop: 10,
+                flexWrap: "wrap",
               }}
             >
-              {["S", "M", "L", "XL", "XXL"].map((item) => (
+              {["XS", "S", "M", "L", "XL", "XXL"].map((item) => (
                 <button
                   key={item}
                   onClick={() => setSize(item)}
                   style={{
-                    padding: "12px 18px",
+                    padding: "12px 20px",
                     borderRadius: 8,
                     border:
                       size === item
-                        ? "2px solid #111"
+                        ? "2px solid #e91e63"
                         : "1px solid #ccc",
-                    background: size === item ? "#111" : "#fff",
-                    color: size === item ? "#fff" : "#111",
+                    background:
+                      size === item ? "#e91e63" : "white",
+                    color:
+                      size === item ? "white" : "#333",
+                    fontWeight: "bold",
                     cursor: "pointer",
-                    fontWeight: 600,
                   }}
                 >
                   {item}
@@ -232,43 +241,93 @@ export default function ProductPage({
             </div>
           </div>
 
-          {/* Add to Cart */}
+          {/* QUANTITY */}
+
+          <div style={{ marginBottom: 25 }}>
+            <h3 style={{ marginBottom: 12 }}>Quantity</h3>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 15,
+              }}
+            >
+              <button
+                onClick={() =>
+                  setQuantity(Math.max(1, quantity - 1))
+                }
+                style={{
+                  width: 42,
+                  height: 42,
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                  background: "white",
+                  fontSize: 22,
+                  cursor: "pointer",
+                }}
+              >
+                −
+              </button>
+
+              <strong style={{ fontSize: 20 }}>
+                {quantity}
+              </strong>
+
+              <button
+                onClick={() => setQuantity(quantity + 1)}
+                style={{
+                  width: 42,
+                  height: 42,
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                  background: "white",
+                  fontSize: 22,
+                  cursor: "pointer",
+                }}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* ADD TO CART */}
+
           <button
             onClick={addToCart}
             style={{
               width: "100%",
-              marginTop: 30,
-              padding: "16px",
-              background: added ? "#198754" : "#111",
-              color: "#fff",
+              padding: "16px 20px",
               border: "none",
               borderRadius: 10,
+              background: added ? "#2e7d32" : "#e91e63",
+              color: "white",
               fontSize: 18,
-              fontWeight: 600,
+              fontWeight: "bold",
               cursor: "pointer",
+              marginBottom: 15,
             }}
           >
             {added ? "✓ Added to Cart" : "Add to Cart"}
           </button>
 
-          {added && (
-            <a
-              href="/cart"
-              style={{
-                display: "block",
-                textAlign: "center",
-                marginTop: 15,
-                padding: "14px",
-                border: "1px solid #111",
-                borderRadius: 10,
-                color: "#111",
-                textDecoration: "none",
-                fontWeight: 600,
-              }}
-            >
-              Go to Cart →
-            </a>
-          )}
+          {/* GO TO CART */}
+
+          <a
+            href="/cart"
+            style={{
+              display: "block",
+              textAlign: "center",
+              padding: "15px",
+              border: "1px solid #e91e63",
+              borderRadius: 10,
+              color: "#e91e63",
+              textDecoration: "none",
+              fontWeight: "bold",
+            }}
+          >
+            🛒 View Cart
+          </a>
         </div>
       </div>
     </main>
