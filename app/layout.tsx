@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Bee Girl Shopping",
-  description: "Women's Clothing",
+  title: "BEE GIRL Shopping",
+  description: "Shop women's clothes online at BEE GIRL Shopping.",
   verification: {
     google: "xiC2GuXgH7p_ucrAS1wJTvlQBao9sj7cfUteihTeCmw",
   },
@@ -15,6 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head />
       <body>{children}</body>
     </html>
   );
