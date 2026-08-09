@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 type Product = {
   id: number;
   name: string;
@@ -16,43 +22,25 @@ type CartItem = Product & {
   quantity: number;
 };
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [cartOpen, setCartOpen] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     fetch("/api/products")
       .then((res) => res.json())
       .then((data) => {
-        setProducts(Array.isArray(data) ? data : []);
+        setProducts(data);
         setLoading(false);
       })
       .catch((error) => {
-        console.error("Products error:", error);
+        console.error(error);
         setLoading(false);
       });
-  }, []);
-
-  useEffect(() => {
-    if (document.getElementById("razorpay-script")) {
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = "razorpay-script";
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-
-    document.body.appendChild(script);
   }, []);
 
   function addToCart(product: Product) {
@@ -122,100 +110,152 @@ export default function Home() {
   );
 
   const cartTotal = cart.reduce(
-    (total, item) => total + item.price * item.quantity,
+    (total, item) =>
+      total + item.price * item.quantity,
     0
   );
 
-  async function handleCheckout() {
+  async function loadRazorpayScript() {
+    if (window.Razorpay) {
+      return true;
+    }
+
+    return new Promise<boolean>((resolve) => {
+      const script = document.createElement("script");
+
+      script.src =
+        "https://checkout.razorpay.com/v1/checkout.js";
+
+      script.onload = () => resolve(true);
+
+      script.onerror = () => resolve(false);
+
+      document.body.appendChild(script);
+    });
+  }
+
+  async function startPayment() {
     if (cart.length === 0) {
       alert("Your cart is empty.");
       return;
     }
 
-    if (cartTotal <= 0) {
-      alert("Invalid cart amount.");
-      return;
-    }
-
-    setPaying(true);
-
     try {
-      /*
-       * IMPORTANT:
-       * Send the amount to your server.
-       * The server creates the Razorpay order.
-       */
-      const response = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: cartTotal,
-        }),
-      });
+      setPaying(true);
+      setMessage("");
 
-      const data = await response.json();
+      const scriptLoaded = await loadRazorpayScript();
 
-      console.log("Razorpay order response:", data);
-
-      if (!response.ok) {
-        throw new Error(
-          data?.error || "Unable to create Razorpay order."
+      if (!scriptLoaded) {
+        alert(
+          "Razorpay could not be loaded. Please check your internet connection."
         );
+
+        setPaying(false);
+        return;
       }
 
-      /*
-       * Your API returns:
-       * {
-       *   id: order.id,
-       *   amount: order.amount,
-       *   currency: order.currency
-       * }
-       *
-       * We MUST use data.id here.
-       */
-      if (!data?.id) {
-        console.error("Missing Razorpay order ID:", data);
-        throw new Error("Razorpay order ID is missing.");
+      const orderResponse = await fetch(
+        "/api/razorpay/create-order",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: cartTotal,
+          }),
+        }
+      );
+
+      const orderData = await orderResponse.json();
+
+      if (!orderResponse.ok) {
+        alert(
+          orderData.error ||
+            "Unable to create payment order."
+        );
+
+        setPaying(false);
+        return;
       }
 
-      if (!window.Razorpay) {
-        throw new Error(
-          "Razorpay Checkout is still loading. Please try again."
+      if (!orderData.id || !orderData.keyId) {
+        alert(
+          "Razorpay order information is missing."
         );
+
+        setPaying(false);
+        return;
       }
 
       const options = {
-        key: data.key || undefined,
+        key: orderData.keyId,
 
-        amount: data.amount,
-        currency: data.currency || "INR",
+        amount: orderData.amount,
 
-        name: "Sindhu Shopping",
-        description: "Women's Clothing",
-        order_id: data.id,
+        currency: orderData.currency,
 
-        handler: function (paymentResponse: any) {
-          console.log("Payment successful:", paymentResponse);
+        name: "Bee Girl Shopping",
 
-          alert(
-            "Payment successful!\nPayment ID: " +
-              paymentResponse.razorpay_payment_id
-          );
+        description:
+          "Women's Clothing Purchase",
 
-          setCart([]);
-          setCartOpen(false);
-        },
+        order_id: orderData.id,
 
-        prefill: {
-          name: "",
-          email: "",
-          contact: "",
-        },
+        handler: async function (response: any) {
+          try {
+            const verifyResponse = await fetch(
+              "/api/razorpay/verify-payment",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  razorpay_order_id:
+                    response.razorpay_order_id,
 
-        theme: {
-          color: "#000000",
+                  razorpay_payment_id:
+                    response.razorpay_payment_id,
+
+                  razorpay_signature:
+                    response.razorpay_signature,
+                }),
+              }
+            );
+
+            const verifyData =
+              await verifyResponse.json();
+
+            if (
+              verifyResponse.ok &&
+              verifyData.success
+            ) {
+              setCart([]);
+              setCartOpen(false);
+              setMessage(
+                "Payment successful! Thank you for shopping with Bee Girl Shopping."
+              );
+
+              alert(
+                "Payment successful! 🎉\n\nThank you for shopping with Bee Girl Shopping."
+              );
+            } else {
+              alert(
+                verifyData.error ||
+                  "Payment verification failed."
+              );
+            }
+          } catch (error) {
+            console.error(error);
+
+            alert(
+              "Payment was completed, but verification could not be completed. Please contact us."
+            );
+          } finally {
+            setPaying(false);
+          }
         },
 
         modal: {
@@ -223,43 +263,38 @@ export default function Home() {
             setPaying(false);
           },
         },
+
+        theme: {
+          color: "#000000",
+        },
       };
 
-      /*
-       * If the server does not return the public key,
-       * use the environment-injected key through this fallback.
-       *
-       * The actual key should be returned by your API.
-       */
-      if (!options.key) {
-        alert(
-          "Razorpay public key is missing. Please check your Vercel environment variables."
-        );
-        setPaying(false);
-        return;
-      }
+      const razorpay =
+        new window.Razorpay(options);
 
-      const razorpay = new window.Razorpay(options);
+      razorpay.on(
+        "payment.failed",
+        function (response: any) {
+          console.error(
+            "Payment failed:",
+            response
+          );
 
-      razorpay.on("payment.failed", function (response: any) {
-        console.error("Payment failed:", response);
+          alert(
+            response?.error?.description ||
+              "Payment failed. Please try again."
+          );
 
-        alert(
-          "Payment failed.\n\n" +
-            (response?.error?.description ||
-              "Please try again.")
-        );
-
-        setPaying(false);
-      });
+          setPaying(false);
+        }
+      );
 
       razorpay.open();
-    } catch (error: any) {
-      console.error("Checkout error:", error);
+    } catch (error) {
+      console.error(error);
 
       alert(
-        error?.message ||
-          "Unable to start payment. Please try again."
+        "Something went wrong while starting payment."
       );
 
       setPaying(false);
@@ -272,36 +307,35 @@ export default function Home() {
         minHeight: "100vh",
         background: "#ffffff",
         color: "#111111",
+        padding: "30px",
         fontFamily: "Arial, sans-serif",
-        padding: "20px",
       }}
     >
       <header
         style={{
-          maxWidth: "1100px",
-          margin: "0 auto",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          paddingBottom: "30px",
+          marginBottom: "40px",
+          gap: "20px",
+          flexWrap: "wrap",
         }}
       >
         <div>
           <h1
             style={{
+              fontSize: "42px",
               margin: 0,
-              fontSize: "36px",
               fontWeight: 800,
             }}
           >
-            🛍️ Bee Girl Shopping
+            🛍️ Sindhu Shopping
           </h1>
 
           <p
             style={{
-              margin: "8px 0 0",
-              fontSize: "18px",
-              color: "#555",
+              fontSize: "20px",
+              marginTop: "8px",
             }}
           >
             Women&apos;s Clothing
@@ -311,12 +345,12 @@ export default function Home() {
         <button
           onClick={() => setCartOpen(true)}
           style={{
-            background: "#000",
-            color: "#fff",
+            background: "#000000",
+            color: "#ffffff",
             border: "none",
             borderRadius: "14px",
-            padding: "15px 20px",
-            fontSize: "16px",
+            padding: "16px 22px",
+            fontSize: "18px",
             cursor: "pointer",
           }}
         >
@@ -324,184 +358,140 @@ export default function Home() {
         </button>
       </header>
 
-      <section
-        style={{
-          maxWidth: "1100px",
-          margin: "0 auto",
-        }}
-      >
+      {message && (
         <div
           style={{
-            background: "#f2f2f2",
-            borderRadius: "20px",
-            padding: "35px 20px",
-            marginBottom: "30px",
-            textAlign: "center",
+            background: "#e8f7e8",
+            border: "1px solid #79c879",
+            borderRadius: "12px",
+            padding: "18px",
+            marginBottom: "25px",
+            fontSize: "18px",
           }}
         >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "42px",
-            }}
-          >
-            Bee girl Shopping
-          </h2>
-
-          <p
-            style={{
-              fontSize: "20px",
-              color: "#555",
-            }}
-          >
-            Beautiful women&apos;s clothing
-          </p>
+          {message}
         </div>
+      )}
 
-        {loading ? (
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: "20px",
-            }}
-          >
-            Loading products...
-          </p>
-        ) : products.length === 0 ? (
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: "20px",
-            }}
-          >
-            No products available.
-          </p>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(250px, 1fr))",
-              gap: "25px",
-            }}
-          >
-            {products.map((product) => (
-              <div
-                key={product.id}
+      {loading ? (
+        <p style={{ fontSize: "20px" }}>
+          Loading products...
+        </p>
+      ) : products.length === 0 ? (
+        <p style={{ fontSize: "20px" }}>
+          No products available.
+        </p>
+      ) : (
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "25px",
+          }}
+        >
+          {products.map((product) => (
+            <div
+              key={product.id}
+              style={{
+                border: "1px solid #dddddd",
+                borderRadius: "18px",
+                overflow: "hidden",
+                background: "#ffffff",
+              }}
+            >
+              <img
+                src={product.image_url}
+                alt={product.name}
                 style={{
-                  border: "1px solid #ddd",
-                  borderRadius: "18px",
-                  overflow: "hidden",
-                  background: "#fff",
-                  boxShadow:
-                    "0 4px 15px rgba(0,0,0,0.08)",
+                  width: "100%",
+                  height: "300px",
+                  objectFit: "cover",
+                  background: "#eeeeee",
                 }}
-              >
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  style={{
-                    width: "100%",
-                    height: "280px",
-                    objectFit: "cover",
-                    display: "block",
-                    background: "#eee",
-                  }}
-                />
+              />
 
-                <div
+              <div style={{ padding: "20px" }}>
+                <p
                   style={{
-                    padding: "18px",
+                    color: "#777777",
+                    marginBottom: "6px",
                   }}
                 >
-                  <p
-                    style={{
-                      margin: "0 0 6px",
-                      color: "#777",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {product.category}
-                  </p>
+                  {product.category}
+                </p>
 
-                  <h3
-                    style={{
-                      margin: "0 0 8px",
-                      fontSize: "22px",
-                    }}
-                  >
-                    {product.name}
-                  </h3>
+                <h2
+                  style={{
+                    margin: "5px 0",
+                    fontSize: "24px",
+                  }}
+                >
+                  {product.name}
+                </h2>
 
-                  <p
-                    style={{
-                      color: "#555",
-                      minHeight: "45px",
-                    }}
-                  >
-                    {product.description}
-                  </p>
+                <p
+                  style={{
+                    color: "#555555",
+                    minHeight: "45px",
+                  }}
+                >
+                  {product.description}
+                </p>
 
-                  <h2
-                    style={{
-                      margin: "12px 0",
-                    }}
-                  >
-                    ₹{product.price}
-                  </h2>
+                <h3
+                  style={{
+                    fontSize: "24px",
+                    margin: "15px 0",
+                  }}
+                >
+                  ₹{product.price}
+                </h3>
 
-                  <button
-                    onClick={() => addToCart(product)}
-                    disabled={product.stock <= 0}
-                    style={{
-                      width: "100%",
-                      padding: "14px",
-                      border: "none",
-                      borderRadius: "10px",
-                      background:
-                        product.stock > 0
-                          ? "#000"
-                          : "#aaa",
-                      color: "#fff",
-                      cursor:
-                        product.stock > 0
-                          ? "pointer"
-                          : "not-allowed",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {product.stock > 0
-                      ? "Add to Cart"
-                      : "Out of Stock"}
-                  </button>
-                </div>
+                <button
+                  onClick={() =>
+                    addToCart(product)
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "14px",
+                    background: "#000000",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "10px",
+                    fontSize: "17px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Add to Cart
+                </button>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+            </div>
+          ))}
+        </section>
+      )}
 
       {cartOpen && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.65)",
-            zIndex: 1000,
+            background: "rgba(0,0,0,0.6)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             padding: "20px",
+            zIndex: 1000,
           }}
         >
           <div
             style={{
+              background: "#ffffff",
+              color: "#111111",
               width: "100%",
               maxWidth: "600px",
               maxHeight: "90vh",
               overflowY: "auto",
-              background: "#fff",
               borderRadius: "20px",
               padding: "25px",
             }}
@@ -515,8 +505,8 @@ export default function Home() {
             >
               <h2
                 style={{
-                  margin: 0,
                   fontSize: "30px",
+                  margin: 0,
                 }}
               >
                 🛒 Your Cart
@@ -526,11 +516,11 @@ export default function Home() {
                 onClick={() => setCartOpen(false)}
                 style={{
                   border: "none",
-                  background: "#eee",
+                  background: "#eeeeee",
+                  borderRadius: "50%",
                   width: "45px",
                   height: "45px",
-                  borderRadius: "50%",
-                  fontSize: "25px",
+                  fontSize: "24px",
                   cursor: "pointer",
                 }}
               >
@@ -541,20 +531,16 @@ export default function Home() {
             {cart.length === 0 ? (
               <p
                 style={{
-                  textAlign: "center",
-                  padding: "50px 0",
                   fontSize: "20px",
+                  marginTop: "40px",
+                  textAlign: "center",
                 }}
               >
                 Your cart is empty.
               </p>
             ) : (
               <>
-                <div
-                  style={{
-                    marginTop: "25px",
-                  }}
-                >
+                <div style={{ marginTop: "25px" }}>
                   {cart.map((item) => (
                     <div
                       key={item.id}
@@ -562,16 +548,17 @@ export default function Home() {
                         display: "flex",
                         gap: "15px",
                         alignItems: "center",
-                        borderBottom: "1px solid #ddd",
                         padding: "15px 0",
+                        borderBottom:
+                          "1px solid #dddddd",
                       }}
                     >
                       <img
                         src={item.image_url}
                         alt={item.name}
                         style={{
-                          width: "80px",
-                          height: "80px",
+                          width: "75px",
+                          height: "75px",
                           objectFit: "cover",
                           borderRadius: "10px",
                         }}
@@ -582,17 +569,13 @@ export default function Home() {
                           flex: 1,
                         }}
                       >
-                        <h3
-                          style={{
-                            margin: "0 0 5px",
-                          }}
-                        >
+                        <strong>
                           {item.name}
-                        </h3>
+                        </strong>
 
                         <p
                           style={{
-                            margin: "0 0 8px",
+                            margin: "5px 0",
                           }}
                         >
                           ₹{item.price}
@@ -607,58 +590,59 @@ export default function Home() {
                         >
                           <button
                             onClick={() =>
-                              decreaseQuantity(item.id)
+                              decreaseQuantity(
+                                item.id
+                              )
                             }
                             style={{
                               width: "32px",
                               height: "32px",
                               border: "1px solid #ccc",
+                              background:
+                                "#ffffff",
                               borderRadius: "6px",
-                              background: "#fff",
-                              cursor: "pointer",
                             }}
                           >
                             −
                           </button>
 
-                          <span>{item.quantity}</span>
+                          <span>
+                            {item.quantity}
+                          </span>
 
                           <button
                             onClick={() =>
-                              increaseQuantity(item.id)
+                              increaseQuantity(
+                                item.id
+                              )
                             }
                             style={{
                               width: "32px",
                               height: "32px",
                               border: "1px solid #ccc",
+                              background:
+                                "#ffffff",
                               borderRadius: "6px",
-                              background: "#fff",
-                              cursor: "pointer",
                             }}
                           >
                             +
                           </button>
-
-                          <button
-                            onClick={() =>
-                              removeFromCart(item.id)
-                            }
-                            style={{
-                              marginLeft: "10px",
-                              border: "none",
-                              background: "none",
-                              color: "red",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Remove
-                          </button>
                         </div>
                       </div>
 
-                      <strong>
-                        ₹{item.price * item.quantity}
-                      </strong>
+                      <button
+                        onClick={() =>
+                          removeFromCart(item.id)
+                        }
+                        style={{
+                          border: "none",
+                          background: "#eeeeee",
+                          borderRadius: "8px",
+                          padding: "8px",
+                        }}
+                      >
+                        Remove
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -666,28 +650,35 @@ export default function Home() {
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
+                    justifyContent:
+                      "space-between",
+                    marginTop: "25px",
                     fontSize: "24px",
-                    fontWeight: 700,
-                    padding: "25px 0",
+                    fontWeight: "bold",
                   }}
                 >
                   <span>Total</span>
-                  <span>₹{cartTotal}</span>
+
+                  <span>
+                    ₹{cartTotal}
+                  </span>
                 </div>
 
                 <button
-                  onClick={handleCheckout}
+                  onClick={startPayment}
                   disabled={paying}
                   style={{
                     width: "100%",
+                    marginTop: "25px",
                     padding: "18px",
+                    background: paying
+                      ? "#777777"
+                      : "#000000",
+                    color: "#ffffff",
                     border: "none",
                     borderRadius: "12px",
-                    background: paying ? "#777" : "#000",
-                    color: "#fff",
-                    fontSize: "20px",
-                    fontWeight: 700,
+                    fontSize: "19px",
+                    fontWeight: "bold",
                     cursor: paying
                       ? "not-allowed"
                       : "pointer",
@@ -704,4 +695,4 @@ export default function Home() {
       )}
     </main>
   );
-            }
+}
