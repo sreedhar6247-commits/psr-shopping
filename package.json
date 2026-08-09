@@ -9,11 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.0",
+    "@tailwindcss/postcss": "^4.1.12"
     "next": "15.5.21",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "razorpay": "^2.9.6"
+    "tailwindcss": "^4.1.12"
+    
   },
   "devDependencies": {
     "@types/node": "^20",
