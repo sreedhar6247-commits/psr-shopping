@@ -9,47 +9,30 @@ export async function POST(request: Request) {
       razorpay_signature,
     } = await request.json();
 
-    if (
-      !razorpay_order_id ||
-      !razorpay_payment_id ||
-      !razorpay_signature
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Payment information is missing",
-        },
-        { status: 400 }
-      );
-    }
-
     const secret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!secret) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Razorpay secret is not configured",
-        },
+        { error: "Razorpay secret is missing" },
         { status: 500 }
       );
     }
 
-    const generatedSignature = crypto
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+
+    const expectedSignature = crypto
       .createHmac("sha256", secret)
-      .update(
-        `${razorpay_order_id}|${razorpay_payment_id}`
-      )
+      .update(body)
       .digest("hex");
 
     const isValid =
-      generatedSignature === razorpay_signature;
+      expectedSignature === razorpay_signature;
 
     if (!isValid) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid payment signature",
+          error: "Payment verification failed",
         },
         { status: 400 }
       );
@@ -62,12 +45,12 @@ export async function POST(request: Request) {
       orderId: razorpay_order_id,
     });
   } catch (error) {
-    console.error("Payment verification error:", error);
+    console.error(error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "Payment verification failed",
+        error: "Payment verification error",
       },
       { status: 500 }
     );
