@@ -2,25 +2,26 @@
 
 import { useEffect, useState } from "react";
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 type Product = {
   id: number;
   name: string;
   category: string;
   description: string;
   price: number;
-  image_url: string;
+  imageUrl: string;
   stock: number;
+  active: boolean;
 };
 
 type CartItem = Product & {
   quantity: number;
 };
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -32,7 +33,12 @@ export default function Home() {
 
   useEffect(() => {
     fetch("/api/products")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Unable to load products");
+        }
+        return res.json();
+      })
       .then((data) => {
         setProducts(data);
         setLoading(false);
@@ -40,6 +46,7 @@ export default function Home() {
       .catch((error) => {
         console.error(error);
         setLoading(false);
+        setMessage("Unable to load products.");
       });
   }, []);
 
@@ -54,7 +61,7 @@ export default function Home() {
           item.id === product.id
             ? {
                 ...item,
-                quantity: item.quantity + 1,
+                quantity: Math.min(item.quantity + 1, product.stock),
               }
             : item
         );
@@ -68,6 +75,9 @@ export default function Home() {
         },
       ];
     });
+
+    setMessage(`${product.name} added to cart.`);
+    setTimeout(() => setMessage(""), 2000);
   }
 
   function increaseQuantity(id: number) {
@@ -76,7 +86,7 @@ export default function Home() {
         item.id === id
           ? {
               ...item,
-              quantity: item.quantity + 1,
+              quantity: Math.min(item.quantity + 1, item.stock),
             }
           : item
       )
@@ -110,24 +120,21 @@ export default function Home() {
   );
 
   const cartTotal = cart.reduce(
-    (total, item) =>
-      total + item.price * item.quantity,
+    (total, item) => total + item.price * item.quantity,
     0
   );
 
-  async function loadRazorpayScript() {
-    if (window.Razorpay) {
-      return true;
-    }
-
+  function loadRazorpayScript() {
     return new Promise<boolean>((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
       const script = document.createElement("script");
 
-      script.src =
-        "https://checkout.razorpay.com/v1/checkout.js";
-
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.onload = () => resolve(true);
-
       script.onerror = () => resolve(false);
 
       document.body.appendChild(script);
@@ -136,126 +143,78 @@ export default function Home() {
 
   async function startPayment() {
     if (cart.length === 0) {
-      alert("Your cart is empty.");
+      setMessage("Your cart is empty.");
       return;
     }
 
+    setPaying(true);
+    setMessage("");
+
     try {
-      setPaying(true);
-      setMessage("");
+      const loaded = await loadRazorpayScript();
 
-      const scriptLoaded = await loadRazorpayScript();
-
-      if (!scriptLoaded) {
-        alert(
-          "Razorpay could not be loaded. Please check your internet connection."
-        );
-
+      if (!loaded) {
+        setMessage("Unable to load payment system.");
         setPaying(false);
         return;
       }
 
-      const orderResponse = await fetch(
-        "/api/razorpay/create-order",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            amount: cartTotal,
-          }),
-        }
-      );
+      /*
+       * This expects your existing /api/razorpay route.
+       * Keep your Razorpay secret key on the server only.
+       */
+      const response = await fetch("/api/razorpay", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: cartTotal,
+          items: cart.map((item) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+        }),
+      });
 
-      const orderData = await orderResponse.json();
-
-      if (!orderResponse.ok) {
-        alert(
-          orderData.error ||
-            "Unable to create payment order."
-        );
-
-        setPaying(false);
-        return;
+      if (!response.ok) {
+        throw new Error("Payment order could not be created");
       }
 
-      if (!orderData.id || !orderData.keyId) {
-        alert(
-          "Razorpay order information is missing."
-        );
-
-        setPaying(false);
-        return;
-      }
+      const order = await response.json();
 
       const options = {
-        key: orderData.keyId,
-
-        amount: orderData.amount,
-
-        currency: orderData.currency,
-
+        key:
+          order.key ||
+          process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+          "",
+        amount: order.amount || cartTotal * 100,
+        currency: order.currency || "INR",
         name: "Bee Girl Shopping",
+        description: "Women's Clothing",
+        order_id: order.id,
 
-        description:
-          "Women's Clothing Purchase",
+        handler: function (paymentResponse: any) {
+          console.log("Payment successful:", paymentResponse);
 
-        order_id: orderData.id,
+          setMessage(
+            "Payment successful! Thank you for shopping with Bee Girl Shopping."
+          );
 
-        handler: async function (response: any) {
-          try {
-            const verifyResponse = await fetch(
-              "/api/razorpay/verify-payment",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  razorpay_order_id:
-                    response.razorpay_order_id,
+          setCart([]);
+          setCartOpen(false);
+        },
 
-                  razorpay_payment_id:
-                    response.razorpay_payment_id,
+        prefill: {
+          name: "",
+          email: "",
+          contact: "",
+        },
 
-                  razorpay_signature:
-                    response.razorpay_signature,
-                }),
-              }
-            );
-
-            const verifyData =
-              await verifyResponse.json();
-
-            if (
-              verifyResponse.ok &&
-              verifyData.success
-            ) {
-              setCart([]);
-              setCartOpen(false);
-              setMessage(
-                "Payment successful! Thank you for shopping with Bee Girl Shopping."
-              );
-
-              alert(
-                "Payment successful! 🎉\n\nThank you for shopping with Bee Girl Shopping."
-              );
-            } else {
-              alert(
-                verifyData.error ||
-                  "Payment verification failed."
-              );
-            }
-          } catch (error) {
-            console.error(error);
-
-            alert(
-              "Payment was completed, but verification could not be completed. Please contact us."
-            );
-          } finally {
-            setPaying(false);
-          }
+        theme: {
+          color: "#000000",
         },
 
         modal: {
@@ -263,436 +222,310 @@ export default function Home() {
             setPaying(false);
           },
         },
-
-        theme: {
-          color: "#000000",
-        },
       };
 
-      const razorpay =
-        new window.Razorpay(options);
+      if (!options.key) {
+        setMessage(
+          "Razorpay key is not configured yet. Your products and cart are working."
+        );
+        setPaying(false);
+        return;
+      }
 
-      razorpay.on(
-        "payment.failed",
-        function (response: any) {
-          console.error(
-            "Payment failed:",
-            response
-          );
-
-          alert(
-            response?.error?.description ||
-              "Payment failed. Please try again."
-          );
-
-          setPaying(false);
-        }
-      );
-
+      const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (error) {
       console.error(error);
 
-      alert(
-        "Something went wrong while starting payment."
+      setMessage(
+        "Payment is not configured yet. Your cart is working correctly."
       );
-
-      setPaying(false);
     }
+
+    setPaying(false);
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#ffffff",
-        color: "#111111",
-        padding: "30px",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "40px",
-          gap: "20px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: "42px",
-              margin: 0,
-              fontWeight: 800,
-            }}
-          >
-            🛍️ Bee Girl Shopping
-          </h1>
+    <main className="min-h-screen bg-white text-black">
+      {/* HEADER */}
+      <header className="mx-auto max-w-7xl px-6 py-8">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-4">
+              <div className="text-6xl">🛍️</div>
 
-          <p
-            style={{
-              fontSize: "20px",
-              marginTop: "8px",
-            }}
+              <h1 className="text-5xl font-black tracking-tight sm:text-7xl">
+                Bee Girl
+                <br />
+                Shopping
+              </h1>
+            </div>
+
+            <p className="mt-5 text-2xl text-gray-700">
+              Women&apos;s Clothing
+            </p>
+          </div>
+
+          <button
+            onClick={() => setCartOpen(true)}
+            className="rounded-3xl bg-black px-8 py-5 text-xl font-semibold text-white transition hover:bg-gray-800"
           >
-            Women&apos;s Clothing
+            🛒 Cart ({cartCount})
+          </button>
+        </div>
+      </header>
+
+      {/* MESSAGE */}
+      {message && (
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="rounded-xl bg-gray-100 px-5 py-4 text-center text-lg">
+            {message}
+          </div>
+        </div>
+      )}
+
+      {/* PRODUCTS */}
+      <section className="mx-auto max-w-7xl px-6 py-10">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold">
+            Women&apos;s Kurtis
+          </h2>
+
+          <p className="mt-2 text-gray-600">
+            Beautiful styles for everyday and festive wear.
           </p>
         </div>
 
-        <button
-          onClick={() => setCartOpen(true)}
-          style={{
-            background: "#000000",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "14px",
-            padding: "16px 22px",
-            fontSize: "18px",
-            cursor: "pointer",
-          }}
-        >
-          🛒 Cart ({cartCount})
-        </button>
-      </header>
-
-      {message && (
-        <div
-          style={{
-            background: "#e8f7e8",
-            border: "1px solid #79c879",
-            borderRadius: "12px",
-            padding: "18px",
-            marginBottom: "25px",
-            fontSize: "18px",
-          }}
-        >
-          {message}
-        </div>
-      )}
-
-      {loading ? (
-        <p style={{ fontSize: "20px" }}>
-          Loading products...
-        </p>
-      ) : products.length === 0 ? (
-        <p style={{ fontSize: "20px" }}>
-          No products available.
-        </p>
-      ) : (
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: "25px",
-          }}
-        >
-          {products.map((product) => (
-            <div
-              key={product.id}
-              style={{
-                border: "1px solid #dddddd",
-                borderRadius: "18px",
-                overflow: "hidden",
-                background: "#ffffff",
-              }}
-            >
-              <img
-                src={product.image_url}
-                alt={product.name}
-                style={{
-                  width: "100%",
-                  height: "300px",
-                  objectFit: "cover",
-                  background: "#eeeeee",
-                }}
-              />
-
-              <div style={{ padding: "20px" }}>
-                <p
-                  style={{
-                    color: "#777777",
-                    marginBottom: "6px",
-                  }}
-                >
-                  {product.category}
-                </p>
-
-                <h2
-                  style={{
-                    margin: "5px 0",
-                    fontSize: "24px",
-                  }}
-                >
-                  {product.name}
-                </h2>
-
-                <p
-                  style={{
-                    color: "#555555",
-                    minHeight: "45px",
-                  }}
-                >
-                  {product.description}
-                </p>
-
-                <h3
-                  style={{
-                    fontSize: "24px",
-                    margin: "15px 0",
-                  }}
-                >
-                  ₹{product.price}
-                </h3>
-
-                <button
-                  onClick={() =>
-                    addToCart(product)
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "14px",
-                    background: "#000000",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "10px",
-                    fontSize: "17px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Add to Cart
-                </button>
-              </div>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {cartOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "20px",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              background: "#ffffff",
-              color: "#111111",
-              width: "100%",
-              maxWidth: "600px",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              borderRadius: "20px",
-              padding: "25px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: "30px",
-                  margin: 0,
-                }}
+        {loading ? (
+          <div className="py-20 text-center text-xl">
+            Loading products...
+          </div>
+        ) : products.length === 0 ? (
+          <div className="rounded-2xl border p-10 text-center">
+            No products available.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {products.map((product) => (
+              <article
+                key={product.id}
+                className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
               >
-                🛒 Your Cart
+                {/* PRODUCT IMAGE */}
+                <div className="relative h-72 w-full overflow-hidden bg-gray-100">
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    onError={(event) => {
+                      const image = event.currentTarget;
+
+                      image.style.display = "none";
+
+                      const parent = image.parentElement;
+
+                      if (parent) {
+                        parent.innerHTML = `
+                          <div style="
+                            height:100%;
+                            width:100%;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            flex-direction:column;
+                            background:#f3f4f6;
+                            color:#6b7280;
+                            text-align:center;
+                            padding:20px;
+                          ">
+                            <div style="font-size:48px;">👗</div>
+                            <div style="font-size:16px;margin-top:8px;">
+                              Product Image
+                            </div>
+                          </div>
+                        `;
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* PRODUCT INFORMATION */}
+                <div className="p-6">
+                  <p className="text-sm font-medium text-gray-500">
+                    {product.category}
+                  </p>
+
+                  <h3 className="mt-2 text-2xl font-bold">
+                    {product.name}
+                  </h3>
+
+                  <p className="mt-3 min-h-[72px] text-gray-600">
+                    {product.description}
+                  </p>
+
+                  <div className="mt-5 flex items-center justify-between">
+                    <span className="text-3xl font-black">
+                      ₹{product.price}
+                    </span>
+
+                    <span className="text-sm text-gray-500">
+                      {product.stock} available
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => addToCart(product)}
+                    disabled={!product.active || product.stock <= 0}
+                    className="mt-6 w-full rounded-2xl bg-black px-5 py-4 text-lg font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
+                  >
+                    {product.stock <= 0
+                      ? "Out of Stock"
+                      : "Add to Cart"}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* CART OVERLAY */}
+      {cartOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50">
+          <div className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold">
+                Your Cart
               </h2>
 
               <button
                 onClick={() => setCartOpen(false)}
-                style={{
-                  border: "none",
-                  background: "#eeeeee",
-                  borderRadius: "50%",
-                  width: "45px",
-                  height: "45px",
-                  fontSize: "24px",
-                  cursor: "pointer",
-                }}
+                className="rounded-full bg-gray-100 px-4 py-2 text-xl"
               >
-                ×
+                ✕
               </button>
             </div>
 
             {cart.length === 0 ? (
-              <p
-                style={{
-                  fontSize: "20px",
-                  marginTop: "40px",
-                  textAlign: "center",
-                }}
-              >
-                Your cart is empty.
-              </p>
+              <div className="py-20 text-center">
+                <div className="text-6xl">🛒</div>
+
+                <p className="mt-5 text-xl text-gray-600">
+                  Your cart is empty.
+                </p>
+              </div>
             ) : (
               <>
-                <div style={{ marginTop: "25px" }}>
+                <div className="mt-8 space-y-5">
                   {cart.map((item) => (
                     <div
                       key={item.id}
-                      style={{
-                        display: "flex",
-                        gap: "15px",
-                        alignItems: "center",
-                        padding: "15px 0",
-                        borderBottom:
-                          "1px solid #dddddd",
-                      }}
+                      className="rounded-2xl border p-4"
                     >
-                      <img
-                        src={item.image_url}
-                        alt={item.name}
-                        style={{
-                          width: "75px",
-                          height: "75px",
-                          objectFit: "cover",
-                          borderRadius: "10px",
-                        }}
-                      />
+                      <div className="flex gap-4">
+                        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
 
-                      <div
-                        style={{
-                          flex: 1,
-                        }}
-                      >
-                        <strong>
-                          {item.name}
-                        </strong>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold">
+                            {item.name}
+                          </h3>
 
-                        <p
-                          style={{
-                            margin: "5px 0",
-                          }}
-                        >
-                          ₹{item.price}
-                        </p>
+                          <p className="mt-1 text-lg font-semibold">
+                            ₹{item.price}
+                          </p>
 
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                          }}
-                        >
-                          <button
-                            onClick={() =>
-                              decreaseQuantity(
-                                item.id
-                              )
-                            }
-                            style={{
-                              width: "32px",
-                              height: "32px",
-                              border: "1px solid #ccc",
-                              background:
-                                "#ffffff",
-                              borderRadius: "6px",
-                            }}
-                          >
-                            −
-                          </button>
+                          <div className="mt-3 flex items-center gap-3">
+                            <button
+                              onClick={() =>
+                                decreaseQuantity(item.id)
+                              }
+                              className="h-9 w-9 rounded-full bg-gray-200 text-lg"
+                            >
+                              −
+                            </button>
 
-                          <span>
-                            {item.quantity}
-                          </span>
+                            <span className="min-w-6 text-center font-semibold">
+                              {item.quantity}
+                            </span>
 
-                          <button
-                            onClick={() =>
-                              increaseQuantity(
-                                item.id
-                              )
-                            }
-                            style={{
-                              width: "32px",
-                              height: "32px",
-                              border: "1px solid #ccc",
-                              background:
-                                "#ffffff",
-                              borderRadius: "6px",
-                            }}
-                          >
-                            +
-                          </button>
+                            <button
+                              onClick={() =>
+                                increaseQuantity(item.id)
+                              }
+                              className="h-9 w-9 rounded-full bg-gray-200 text-lg"
+                            >
+                              +
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                removeFromCart(item.id)
+                              }
+                              className="ml-auto text-sm text-red-600"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      <button
-                        onClick={() =>
-                          removeFromCart(item.id)
-                        }
-                        style={{
-                          border: "none",
-                          background: "#eeeeee",
-                          borderRadius: "8px",
-                          padding: "8px",
-                        }}
-                      >
-                        Remove
-                      </button>
                     </div>
                   ))}
                 </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                    marginTop: "25px",
-                    fontSize: "24px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  <span>Total</span>
+                {/* TOTAL */}
+                <div className="mt-8 rounded-2xl bg-gray-100 p-5">
+                  <div className="flex justify-between text-lg">
+                    <span>Items</span>
+                    <span>{cartCount}</span>
+                  </div>
 
-                  <span>
-                    ₹{cartTotal}
-                  </span>
+                  <div className="mt-3 flex justify-between text-2xl font-black">
+                    <span>Total</span>
+                    <span>₹{cartTotal}</span>
+                  </div>
                 </div>
 
+                {/* CHECKOUT */}
                 <button
                   onClick={startPayment}
                   disabled={paying}
-                  style={{
-                    width: "100%",
-                    marginTop: "25px",
-                    padding: "18px",
-                    background: paying
-                      ? "#777777"
-                      : "#000000",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "12px",
-                    fontSize: "19px",
-                    fontWeight: "bold",
-                    cursor: paying
-                      ? "not-allowed"
-                      : "pointer",
-                  }}
+                  className="mt-6 w-full rounded-2xl bg-black px-5 py-5 text-xl font-bold text-white transition hover:bg-gray-800 disabled:bg-gray-400"
                 >
                   {paying
                     ? "Opening Payment..."
-                    : "Proceed to Checkout"}
+                    : `Pay ₹${cartTotal}`}
                 </button>
+
+                <p className="mt-4 text-center text-sm text-gray-500">
+                  Secure checkout • UPI / Cards / Net Banking
+                </p>
               </>
             )}
           </div>
         </div>
       )}
+
+      {/* FOOTER */}
+      <footer className="mt-20 border-t px-6 py-10 text-center">
+        <h3 className="text-2xl font-bold">
+          Bee Girl Shopping
+        </h3>
+
+        <p className="mt-2 text-gray-600">
+          Women&apos;s Clothing
+        </p>
+
+        <p className="mt-5 text-sm text-gray-500">
+          © {new Date().getFullYear()} Bee Girl Shopping. All rights reserved.
+        </p>
+      </footer>
     </main>
   );
-}
+            }
