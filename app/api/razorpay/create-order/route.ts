@@ -3,18 +3,12 @@ import Razorpay from "razorpay";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-
-    const amount = Number(body.amount);
+    const { amount } = await request.json();
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
-        {
-          error: "Invalid amount",
-        },
-        {
-          status: 400,
-        }
+        { error: "Invalid amount" },
+        { status: 400 }
       );
     }
 
@@ -23,12 +17,8 @@ export async function POST(request: Request) {
 
     if (!keyId || !keySecret) {
       return NextResponse.json(
-        {
-          error: "Razorpay keys are not configured",
-        },
-        {
-          status: 500,
-        }
+        { error: "Razorpay keys are not configured" },
+        { status: 500 }
       );
     }
 
@@ -48,18 +38,14 @@ export async function POST(request: Request) {
       id: order.id,
       amount: order.amount,
       currency: order.currency,
-      key: keyId,
+      keyId: keyId,
     });
   } catch (error) {
     console.error("Razorpay order error:", error);
 
     return NextResponse.json(
-      {
-        error: "Unable to create Razorpay order",
-      },
-      {
-        status: 500,
-      }
+      { error: "Unable to create Razorpay order" },
+      { status: 500 }
     );
   }
 }
