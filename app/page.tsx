@@ -31,61 +31,26 @@ export default function Home() {
   const [paying, setPaying] = useState(false);
   const [message, setMessage] = useState("");
 
-  /*
-   * LOAD PRODUCTS
-   */
   useEffect(() => {
-    async function loadProducts() {
-      try {
-        const response = await fetch("/api/products");
-
-        if (!response.ok) {
+    fetch("/api/products")
+      .then((res) => {
+        if (!res.ok) {
           throw new Error("Unable to load products");
         }
 
-        const data = await response.json();
-
+        return res.json();
+      })
+      .then((data) => {
         setProducts(data);
-      } catch (error) {
-        console.error(error);
-        setMessage("Unable to load products.");
-      } finally {
         setLoading(false);
-      }
-    }
-
-    loadProducts();
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoading(false);
+        setMessage("Unable to load products.");
+      });
   }, []);
 
-  /*
-   * LOAD CART FROM BROWSER
-   */
-  useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem("bee-girl-cart");
-
-      if (savedCart) {
-        setCart(JSON.parse(savedCart));
-      }
-    } catch (error) {
-      console.error("Unable to load cart", error);
-    }
-  }, []);
-
-  /*
-   * SAVE CART
-   */
-  useEffect(() => {
-    try {
-      localStorage.setItem("bee-girl-cart", JSON.stringify(cart));
-    } catch (error) {
-      console.error("Unable to save cart", error);
-    }
-  }, [cart]);
-
-  /*
-   * ADD TO CART
-   */
   function addToCart(product: Product) {
     if (!product.active || product.stock <= 0) {
       return;
@@ -122,40 +87,16 @@ export default function Home() {
     setMessage(`${product.name} added to cart.`);
   }
 
-  /*
-   * REMOVE FROM CART
-   */
-  function removeFromCart(productId: number) {
+  function removeFromCart(id: number) {
     setCart((currentCart) =>
-      currentCart.filter((item) => item.id !== productId)
+      currentCart.filter((item) => item.id !== id)
     );
   }
 
-  /*
-   * DECREASE QUANTITY
-   */
-  function decreaseQuantity(productId: number) {
-    setCart((currentCart) =>
-      currentCart
-        .map((item) =>
-          item.id === productId
-            ? {
-                ...item,
-                quantity: item.quantity - 1,
-              }
-            : item
-        )
-        .filter((item) => item.quantity > 0)
-    );
-  }
-
-  /*
-   * INCREASE QUANTITY
-   */
-  function increaseQuantity(productId: number) {
+  function increaseQuantity(id: number) {
     setCart((currentCart) =>
       currentCart.map((item) =>
-        item.id === productId
+        item.id === id
           ? {
               ...item,
               quantity: Math.min(
@@ -168,46 +109,35 @@ export default function Home() {
     );
   }
 
-  /*
-   * CART COUNT
-   */
+  function decreaseQuantity(id: number) {
+    setCart((currentCart) =>
+      currentCart
+        .map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                quantity: item.quantity - 1,
+              }
+            : item
+        )
+        .filter((item) => item.quantity > 0)
+    );
+  }
+
   const cartCount = cart.reduce(
     (total, item) => total + item.quantity,
     0
   );
 
-  /*
-   * CART TOTAL
-   */
   const cartTotal = cart.reduce(
-    (total, item) =>
-      total + item.price * item.quantity,
+    (total, item) => total + item.price * item.quantity,
     0
   );
 
-  /*
-   * LOAD RAZORPAY CHECKOUT SCRIPT
-   */
   function loadRazorpayScript(): Promise<boolean> {
     return new Promise((resolve) => {
       if (window.Razorpay) {
         resolve(true);
-        return;
-      }
-
-      const existingScript = document.querySelector(
-        'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
-      );
-
-      if (existingScript) {
-        existingScript.addEventListener("load", () =>
-          resolve(true)
-        );
-
-        existingScript.addEventListener("error", () =>
-          resolve(false)
-        );
-
         return;
       }
 
@@ -216,19 +146,13 @@ export default function Home() {
       script.src =
         "https://checkout.razorpay.com/v1/checkout.js";
 
-      script.async = true;
-
       script.onload = () => resolve(true);
-
       script.onerror = () => resolve(false);
 
       document.body.appendChild(script);
     });
   }
 
-  /*
-   * START PAYMENT
-   */
   async function startPayment() {
     if (cart.length === 0) {
       setMessage("Your cart is empty.");
@@ -239,39 +163,23 @@ export default function Home() {
     setMessage("");
 
     try {
-      /*
-       * STEP 1
-       * Load Razorpay Checkout
-       */
       const loaded = await loadRazorpayScript();
 
       if (!loaded) {
-        throw new Error(
-          "Unable to load Razorpay payment system."
-        );
+        setMessage("Unable to load payment system.");
+        setPaying(false);
+        return;
       }
 
-      /*
-       * STEP 2
-       * CREATE RAZORPAY ORDER
-       *
-       * IMPORTANT:
-       * Your API is located at:
-       *
-       * /api/razorpay/create-order
-       */
       const response = await fetch(
         "/api/razorpay/create-order",
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify({
             amount: cartTotal,
-
             items: cart.map((item) => ({
               id: item.id,
               name: item.name,
@@ -283,46 +191,32 @@ export default function Home() {
       );
 
       if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => null);
+        const errorData = await response.json().catch(() => null);
 
         throw new Error(
           errorData?.error ||
-            "Payment order could not be created."
+            "Payment order could not be created"
         );
       }
 
       const order = await response.json();
 
-      /*
-       * Your create-order API returns:
-       *
-       * id
-       * amount
-       * currency
-       * keyId
-       *
-       * We use keyId here.
-       */
       if (!order.id) {
+        throw new Error("Razorpay order ID is missing");
+      }
+
+      const razorpayKey =
+        order.keyId ||
+        process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+
+      if (!razorpayKey) {
         throw new Error(
-          "Razorpay order ID was not returned."
+          "Razorpay public key is not configured"
         );
       }
 
-      if (!order.keyId) {
-        throw new Error(
-          "Razorpay key ID was not returned. Check your server environment variables."
-        );
-      }
-
-      /*
-       * STEP 3
-       * OPEN RAZORPAY CHECKOUT
-       */
       const options = {
-        key: order.keyId,
+        key: razorpayKey,
 
         amount: order.amount,
 
@@ -330,32 +224,21 @@ export default function Home() {
 
         name: "Bee Girl Shopping",
 
-        description:
-          "Women's Clothing",
+        description: "Women's Clothing",
 
         order_id: order.id,
 
-        handler: async function (
-          paymentResponse: any
-        ) {
+        handler: async function (paymentResponse: any) {
           try {
-            setMessage(
-              "Payment completed. Verifying payment..."
-            );
+            setMessage("Verifying payment...");
 
-            /*
-             * STEP 4
-             * VERIFY PAYMENT
-             */
             const verifyResponse = await fetch(
               "/api/razorpay/verify",
               {
                 method: "POST",
-
                 headers: {
                   "Content-Type": "application/json",
                 },
-
                 body: JSON.stringify({
                   razorpay_order_id:
                     paymentResponse.razorpay_order_id,
@@ -370,51 +253,41 @@ export default function Home() {
             );
 
             const verifyData =
-              await verifyResponse
-                .json()
-                .catch(() => null);
+              await verifyResponse.json();
 
-            if (!verifyResponse.ok) {
-              throw new Error(
-                verifyData?.error ||
+            if (!verifyResponse.ok || !verifyData.success) {
+              setMessage(
+                verifyData.error ||
                   "Payment verification failed."
               );
+
+              setPaying(false);
+              return;
             }
 
-            if (!verifyData?.success) {
-              throw new Error(
-                verifyData?.error ||
-                  "Payment could not be confirmed."
-              );
-            }
-
-            /*
-             * PAYMENT SUCCESS
-             */
             setMessage(
-              "Payment confirmed successfully! 🎉"
+              "Payment confirmed successfully! Thank you for your order."
             );
 
             setCart([]);
-
-            localStorage.removeItem(
-              "bee-girl-cart"
-            );
-
             setCartOpen(false);
-          } catch (error: any) {
-            console.error(
-              "Payment verification error:",
-              error
-            );
+            setPaying(false);
+          } catch (error) {
+            console.error(error);
 
             setMessage(
-              error?.message ||
-                "Payment was completed but could not be confirmed."
+              "Payment was received, but verification failed. Please contact us."
             );
-          } finally {
+
             setPaying(false);
           }
+        },
+
+        modal: {
+          ondismiss: function () {
+            setPaying(false);
+            setMessage("Payment cancelled.");
+          },
         },
 
         prefill: {
@@ -430,30 +303,16 @@ export default function Home() {
         theme: {
           color: "#000000",
         },
-
-        modal: {
-          ondismiss: function () {
-            setPaying(false);
-            setMessage(
-              "Payment window was closed."
-            );
-          },
-        },
       };
 
-      /*
-       * STEP 5
-       * OPEN RAZORPAY
-       */
-      const razorpay =
-        new window.Razorpay(options);
+      const razorpay = new window.Razorpay(options);
 
       razorpay.on(
         "payment.failed",
         function (response: any) {
           console.error(
-            "Razorpay payment failed:",
-            response
+            "Payment failed:",
+            response.error
           );
 
           setMessage(
@@ -466,15 +325,13 @@ export default function Home() {
       );
 
       razorpay.open();
-    } catch (error: any) {
-      console.error(
-        "Payment error:",
-        error
-      );
+    } catch (error) {
+      console.error("Payment error:", error);
 
       setMessage(
-        error?.message ||
-          "Unable to start payment."
+        error instanceof Error
+          ? error.message
+          : "Unable to start payment."
       );
 
       setPaying(false);
@@ -484,22 +341,23 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white text-black">
       {/* HEADER */}
+
       <header className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-4">
-              <div className="text-5xl">
+              <div className="text-4xl">
                 🛍️
               </div>
 
-              <h1 className="text-5xl font-black tracking-tight">
+              <h1 className="text-4xl font-black tracking-tight">
                 Bee Girl
                 <br />
                 Shopping
               </h1>
             </div>
 
-            <p className="mt-5 text-2xl text-gray-700">
+            <p className="mt-4 text-xl text-gray-600">
               Women's Clothing
             </p>
           </div>
@@ -514,22 +372,24 @@ export default function Home() {
       </header>
 
       {/* MESSAGE */}
+
       {message && (
         <div className="mx-auto max-w-7xl px-6">
-          <div className="rounded-xl bg-gray-100 px-5 py-4 text-center text-lg">
+          <div className="rounded-xl bg-gray-100 px-5 py-4 text-center">
             {message}
           </div>
         </div>
       )}
 
       {/* PRODUCTS */}
+
       <section className="mx-auto max-w-7xl px-6 py-10">
         <div className="mb-8">
           <h2 className="text-3xl font-bold">
             Women's Kurtis
           </h2>
 
-          <p className="mt-2 text-lg text-gray-600">
+          <p className="mt-2 text-gray-600">
             Beautiful styles for everyday and festive wear.
           </p>
         </div>
@@ -543,14 +403,15 @@ export default function Home() {
             No products available.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((product) => (
               <article
                 key={product.id}
                 className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
               >
                 {/* PRODUCT IMAGE */}
-                <div className="relative aspect-[4/5] w-full overflow-hidden bg-gray-100">
+
+                <div className="relative h-80 w-full overflow-hidden bg-gray-100">
                   <img
                     src={product.imageUrl}
                     alt={product.name}
@@ -560,33 +421,37 @@ export default function Home() {
                       const image =
                         event.currentTarget;
 
-                      image.style.display =
-                        "none";
+                      image.style.display = "none";
 
                       const parent =
                         image.parentElement;
 
                       if (parent) {
                         parent.innerHTML = `
-                          <div style="
-                            height:100%;
-                            width:100%;
-                            display:flex;
-                            align-items:center;
-                            justify-content:center;
-                            flex-direction:column;
-                            background:#f3f4f6;
-                            color:#6b7280;
-                            text-align:center;
-                            padding:20px;
-                          ">
+                          <div
+                            style="
+                              height:100%;
+                              width:100%;
+                              display:flex;
+                              align-items:center;
+                              justify-content:center;
+                              flex-direction:column;
+                              background:#f3f4f6;
+                              color:#6b7280;
+                              text-align:center;
+                              padding:20px;
+                            "
+                          >
                             <div style="font-size:48px;">
                               👗
                             </div>
-                            <div style="
-                              margin-top:8px;
-                              font-size:16px;
-                            ">
+
+                            <div
+                              style="
+                                font-size:16px;
+                                margin-top:8px;
+                              "
+                            >
                               Product Image
                             </div>
                           </div>
@@ -597,6 +462,7 @@ export default function Home() {
                 </div>
 
                 {/* PRODUCT INFORMATION */}
+
                 <div className="p-6">
                   <p className="text-sm font-medium text-gray-500">
                     {product.category}
@@ -621,9 +487,7 @@ export default function Home() {
                   </div>
 
                   <button
-                    onClick={() =>
-                      addToCart(product)
-                    }
+                    onClick={() => addToCart(product)}
                     disabled={
                       !product.active ||
                       product.stock <= 0
@@ -641,65 +505,32 @@ export default function Home() {
         )}
       </section>
 
-      {/* FOOTER */}
-      <footer className="mt-10 border-t px-6 py-10 text-center">
-        <h3 className="text-2xl font-bold">
-          Bee Girl Shopping
-        </h3>
-
-        <p className="mt-2 text-gray-600">
-          Women's Clothing
-        </p>
-
-        <p className="mt-5 text-sm text-gray-500">
-          © {new Date().getFullYear()} Bee Girl
-          Shopping. All rights reserved.
-        </p>
-      </footer>
-
       {/* CART OVERLAY */}
+
       {cartOpen && (
         <div className="fixed inset-0 z-50 bg-black/50">
-          <div className="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto bg-white p-6">
-            {/* CART HEADER */}
+          <div className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto bg-white p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-3xl font-bold">
                 Your Cart
               </h2>
 
               <button
-                onClick={() =>
-                  setCartOpen(false)
-                }
+                onClick={() => setCartOpen(false)}
                 className="rounded-full bg-gray-100 px-4 py-2 text-xl"
               >
                 ✕
               </button>
             </div>
 
-            {/* EMPTY CART */}
             {cart.length === 0 ? (
-              <div className="py-20 text-center">
-                <div className="text-6xl">
-                  🛒
-                </div>
-
-                <p className="mt-5 text-xl text-gray-600">
-                  Your cart is empty.
-                </p>
-
-                <button
-                  onClick={() =>
-                    setCartOpen(false)
-                  }
-                  className="mt-6 rounded-2xl bg-black px-6 py-4 text-white"
-                >
-                  Continue Shopping
-                </button>
+              <div className="py-20 text-center text-lg text-gray-500">
+                Your cart is empty.
               </div>
             ) : (
               <>
                 {/* CART ITEMS */}
+
                 <div className="mt-8 space-y-5">
                   {cart.map((item) => (
                     <div
@@ -707,15 +538,13 @@ export default function Home() {
                       className="rounded-2xl border p-4"
                     >
                       <div className="flex gap-4">
-                        <div className="h-24 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-gray-100">
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="h-24 w-20 rounded-xl object-cover"
+                        />
 
-                        <div className="min-w-0 flex-1">
+                        <div className="flex-1">
                           <h3 className="font-bold">
                             {item.name}
                           </h3>
@@ -736,7 +565,7 @@ export default function Home() {
                               −
                             </button>
 
-                            <span className="font-semibold">
+                            <span className="font-bold">
                               {item.quantity}
                             </span>
 
@@ -746,20 +575,14 @@ export default function Home() {
                                   item.id
                                 )
                               }
-                              disabled={
-                                item.quantity >=
-                                item.stock
-                              }
-                              className="h-9 w-9 rounded-full bg-gray-200 disabled:opacity-40"
+                              className="h-9 w-9 rounded-full bg-gray-200"
                             >
                               +
                             </button>
 
                             <button
                               onClick={() =>
-                                removeFromCart(
-                                  item.id
-                                )
+                                removeFromCart(item.id)
                               }
                               className="ml-auto text-sm text-red-600"
                             >
@@ -773,10 +596,56 @@ export default function Home() {
                 </div>
 
                 {/* TOTAL */}
+
                 <div className="mt-8 rounded-2xl bg-gray-100 p-5">
                   <div className="flex justify-between text-lg">
                     <span>Items</span>
+                    <span>{cartCount}</span>
+                  </div>
 
-                    <span>
-                      {cartCount}
-    
+                  <div className="mt-3 flex justify-between text-2xl font-bold">
+                    <span>Total</span>
+                    <span>₹{cartTotal}</span>
+                  </div>
+                </div>
+
+                {/* CHECKOUT */}
+
+                <button
+                  onClick={startPayment}
+                  disabled={paying}
+                  className="mt-6 w-full rounded-2xl bg-black px-5 py-5 text-xl font-semibold text-white disabled:bg-gray-500"
+                >
+                  {paying
+                    ? "Opening Payment..."
+                    : `Pay ₹${cartTotal}`}
+                </button>
+
+                <p className="mt-4 text-center text-sm text-gray-500">
+                  Secure checkout • UPI / Cards / Net Banking
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FOOTER */}
+
+      <footer className="mt-20 border-t px-6 py-10 text-center">
+        <h3 className="text-2xl font-bold">
+          Bee Girl Shopping
+        </h3>
+
+        <p className="mt-2 text-gray-600">
+          Women's Clothing
+        </p>
+
+        <p className="mt-5 text-sm text-gray-500">
+          © {new Date().getFullYear()} Bee Girl Shopping.
+          All rights reserved.
+        </p>
+      </footer>
+    </main>
+  );
+      }
