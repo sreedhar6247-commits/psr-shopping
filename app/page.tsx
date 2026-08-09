@@ -28,48 +28,51 @@ export default function Home() {
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [cartOpen, setCartOpen] = useState(false);
   const [paying, setPaying] = useState(false);
 
+  const [cartOpen, setCartOpen] = useState(false);
+
   const [message, setMessage] = useState("");
+
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   /*
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    * LOAD PRODUCTS
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    */
 
-  useEffect(() => {
-    async function loadProducts() {
-      try {
-        setLoading(true);
+  async function loadProducts() {
+    try {
+      setLoading(true);
+      setMessage("");
 
-        const response = await fetch("/api/products");
+      const response = await fetch("/api/products");
 
-        if (!response.ok) {
-          throw new Error("Unable to load products");
-        }
-
-        const data = await response.json();
-
-        setProducts(data);
-      } catch (error) {
-        console.error(error);
-        setMessage("Unable to load products. Please refresh the page.");
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error("Unable to load products");
       }
-    }
 
+      const data = await response.json();
+
+      setProducts(data);
+    } catch (error) {
+      console.error(error);
+      setMessage("Unable to load products. Please refresh the page.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
     loadProducts();
   }, []);
 
   /*
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    * CATEGORIES
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    */
 
   const categories = useMemo(() => {
@@ -85,9 +88,9 @@ export default function Home() {
   }, [products]);
 
   /*
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    * FILTER PRODUCTS
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    */
 
   const filteredProducts = useMemo(() => {
@@ -98,23 +101,24 @@ export default function Home() {
           .includes(search.toLowerCase()) ||
         product.description
           .toLowerCase()
-          .includes(search.toLowerCase()) ||
-        product.category
-          .toLowerCase()
           .includes(search.toLowerCase());
 
       const matchesCategory =
         selectedCategory === "All" ||
         product.category === selectedCategory;
 
-      return matchesSearch && matchesCategory;
+      return (
+        product.active &&
+        matchesSearch &&
+        matchesCategory
+      );
     });
   }, [products, search, selectedCategory]);
 
   /*
-   * ---------------------------------------------------------
-   * CART FUNCTIONS
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
+   * ADD TO CART
+   * ----------------------------------------------------
    */
 
   function addToCart(product: Product) {
@@ -157,11 +161,23 @@ export default function Home() {
     }, 2500);
   }
 
+  /*
+   * ----------------------------------------------------
+   * REMOVE FROM CART
+   * ----------------------------------------------------
+   */
+
   function removeFromCart(id: number) {
     setCart((currentCart) =>
       currentCart.filter((item) => item.id !== id)
     );
   }
+
+  /*
+   * ----------------------------------------------------
+   * INCREASE QUANTITY
+   * ----------------------------------------------------
+   */
 
   function increaseQuantity(id: number) {
     setCart((currentCart) =>
@@ -179,6 +195,12 @@ export default function Home() {
     );
   }
 
+  /*
+   * ----------------------------------------------------
+   * DECREASE QUANTITY
+   * ----------------------------------------------------
+   */
+
   function decreaseQuantity(id: number) {
     setCart((currentCart) =>
       currentCart
@@ -195,26 +217,30 @@ export default function Home() {
   }
 
   /*
-   * ---------------------------------------------------------
-   * CART TOTALS
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
+   * CART TOTAL
+   * ----------------------------------------------------
    */
 
-  const cartCount = cart.reduce(
-    (total, item) => total + item.quantity,
-    0
-  );
+  const cartCount = useMemo(() => {
+    return cart.reduce(
+      (total, item) => total + item.quantity,
+      0
+    );
+  }, [cart]);
 
-  const cartTotal = cart.reduce(
-    (total, item) =>
-      total + item.price * item.quantity,
-    0
-  );
+  const cartTotal = useMemo(() => {
+    return cart.reduce(
+      (total, item) =>
+        total + item.price * item.quantity,
+      0
+    );
+  }, [cart]);
 
   /*
-   * ---------------------------------------------------------
-   * LOAD RAZORPAY
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
+   * LOAD RAZORPAY SCRIPT
+   * ----------------------------------------------------
    */
 
   function loadRazorpayScript(): Promise<boolean> {
@@ -230,7 +256,6 @@ export default function Home() {
         "https://checkout.razorpay.com/v1/checkout.js";
 
       script.onload = () => resolve(true);
-
       script.onerror = () => resolve(false);
 
       document.body.appendChild(script);
@@ -238,9 +263,9 @@ export default function Home() {
   }
 
   /*
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    * START PAYMENT
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    */
 
   async function startPayment() {
@@ -260,12 +285,9 @@ export default function Home() {
       const loaded = await loadRazorpayScript();
 
       if (!loaded) {
-        setMessage(
-          "Unable to load payment system. Please try again."
+        throw new Error(
+          "Unable to load payment system."
         );
-
-        setPaying(false);
-        return;
       }
 
       /*
@@ -281,6 +303,7 @@ export default function Home() {
           },
           body: JSON.stringify({
             amount: cartTotal,
+
             items: cart.map((item) => ({
               id: item.id,
               name: item.name,
@@ -292,13 +315,12 @@ export default function Home() {
       );
 
       if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => null);
+        const errorData =
+          await response.json().catch(() => null);
 
         throw new Error(
           errorData?.error ||
-            "Payment order could not be created"
+            "Payment order could not be created."
         );
       }
 
@@ -306,15 +328,12 @@ export default function Home() {
 
       if (!order.id) {
         throw new Error(
-          "Razorpay order ID is missing"
+          "Razorpay order ID is missing."
         );
       }
 
       /*
        * Razorpay public key
-       *
-       * Your API can return keyId.
-       * Otherwise this uses NEXT_PUBLIC_RAZORPAY_KEY_ID.
        */
 
       const razorpayKey =
@@ -323,12 +342,12 @@ export default function Home() {
 
       if (!razorpayKey) {
         throw new Error(
-          "Razorpay public key is not configured"
+          "Razorpay public key is not configured."
         );
       }
 
       /*
-       * Razorpay checkout
+       * Razorpay checkout options
        */
 
       const options = {
@@ -344,16 +363,6 @@ export default function Home() {
 
         order_id: order.id,
 
-        prefill: {
-          name: "",
-          email: "",
-          contact: "",
-        },
-
-        notes: {
-          store: "Bee Girl Shopping",
-        },
-
         theme: {
           color: "#111827",
         },
@@ -363,11 +372,11 @@ export default function Home() {
         ) {
           try {
             setMessage(
-              "Verifying payment..."
+              "Payment received. Verifying..."
             );
 
             /*
-             * Verify payment on server
+             * Verify payment
              */
 
             const verifyResponse = await fetch(
@@ -401,7 +410,7 @@ export default function Home() {
             if (!verifyResponse.ok) {
               throw new Error(
                 verifyData?.error ||
-                  "Payment verification failed"
+                  "Payment verification failed."
               );
             }
 
@@ -415,13 +424,19 @@ export default function Home() {
 
             setCart([]);
             setCartOpen(false);
+
+            /*
+             * Refresh stock/products
+             */
+
+            await loadProducts();
           } catch (error) {
             console.error(error);
 
             setMessage(
               error instanceof Error
                 ? error.message
-                : "Payment verification failed. Please contact support."
+                : "Payment verification failed."
             );
           } finally {
             setPaying(false);
@@ -431,19 +446,27 @@ export default function Home() {
         modal: {
           ondismiss: function () {
             setPaying(false);
-            setMessage(
-              "Payment cancelled."
-            );
+            setMessage("Payment cancelled.");
           },
+        },
+
+        prefill: {
+          name: "",
+          email: "",
+          contact: "",
+        },
+
+        notes: {
+          store: "Bee Girl Shopping",
         },
       };
 
+      /*
+       * Open Razorpay
+       */
+
       const razorpay =
         new window.Razorpay(options);
-
-      /*
-       * Payment failed event
-       */
 
       razorpay.on(
         "payment.failed",
@@ -480,9 +503,9 @@ export default function Home() {
   }
 
   /*
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    * FORMAT PRICE
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    */
 
   function formatPrice(price: number) {
@@ -497,187 +520,173 @@ export default function Home() {
   }
 
   /*
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    * PAGE
-   * ---------------------------------------------------------
+   * ----------------------------------------------------
    */
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
 
-      {/* =====================================================
+      {/* =================================================
           HEADER
-      ====================================================== */}
+      ================================================= */}
 
       <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur">
 
-        <div className="mx-auto max-w-7xl px-4">
+        <div className="mx-auto max-w-7xl px-4 py-3">
 
-          <div className="flex min-h-[68px] items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
 
             {/* LOGO */}
 
-            <div className="min-w-0">
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-gray-900 sm:text-2xl">
+                Bee Girl
+              </h1>
 
-              <div className="flex items-center gap-2">
-
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg text-white">
-                  🐝
-                </div>
-
-                <div className="min-w-0">
-
-                  <h1 className="truncate text-base font-bold sm:text-lg">
-                    Bee Girl Shopping
-                  </h1>
-
-                  <p className="text-[11px] text-gray-500 sm:text-xs">
-                    Women&apos;s Clothing
-                  </p>
-
-                </div>
-
-              </div>
-
+              <p className="text-xs font-medium text-gray-500">
+                Women's Fashion
+              </p>
             </div>
 
             {/* CART BUTTON */}
 
             <button
               type="button"
-              onClick={() =>
-                setCartOpen(true)
-              }
-              className="relative flex shrink-0 items-center gap-1.5 rounded-full bg-black px-3.5 py-2.5 text-sm font-semibold text-white transition active:scale-95"
+              onClick={() => setCartOpen(true)}
+              className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-xl text-white shadow-sm transition active:scale-95"
+              aria-label="Open cart"
             >
-
-              <span>🛒</span>
-
-              <span className="hidden sm:inline">
-                Cart
-              </span>
+              🛒
 
               {cartCount > 0 && (
-                <span className="rounded-full bg-white px-1.5 text-xs font-bold text-black">
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-600 px-1 text-[10px] font-bold text-white">
                   {cartCount}
                 </span>
               )}
-
             </button>
 
           </div>
 
-        </div>
+          {/* SEARCH */}
 
+          <div className="relative mt-3">
+
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+              🔍
+            </span>
+
+            <input
+              type="text"
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder="Search women's clothing..."
+              className="w-full rounded-2xl border border-gray-200 bg-gray-100 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-gray-400 focus:bg-white"
+            />
+
+          </div>
+
+          {/* CATEGORY SCROLL */}
+
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+            {categories.map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() =>
+                  setSelectedCategory(category)
+                }
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
+                  selectedCategory === category
+                    ? "bg-gray-900 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+
+        </div>
       </header>
 
-      {/* =====================================================
-          SEARCH + CATEGORY AREA
-      ====================================================== */}
+      {/* =================================================
+          MESSAGE
+      ================================================= */}
 
-      <section className="mx-auto max-w-7xl px-4 pt-4">
-
-        {/* SEARCH */}
-
-        <div className="flex items-center rounded-xl border bg-white px-3 shadow-sm">
-
-          <span className="mr-2 text-lg">
-            🔍
-          </span>
-
-          <input
-            type="text"
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
-            placeholder="Search women's clothing..."
-            className="w-full bg-transparent py-3 text-sm outline-none"
-          />
-
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="rounded-full px-2 text-gray-500"
-            >
-              ✕
-            </button>
-          )}
-
+      {message && (
+        <div className="fixed left-4 right-4 top-24 z-[60] mx-auto max-w-md">
+          <div className="rounded-2xl bg-gray-900 px-4 py-3 text-center text-sm font-medium text-white shadow-xl">
+            {message}
+          </div>
         </div>
+      )}
 
-        {/* CATEGORY FILTER */}
+      {/* =================================================
+          HERO
+      ================================================= */}
 
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+      <section className="mx-auto max-w-7xl px-4 pt-5">
 
-          {categories.map((category) => (
-            <button
-              key={category}
-              type="button"
-              onClick={() =>
-                setSelectedCategory(category)
-              }
-              className={`whitespace-nowrap rounded-full border px-4 py-2 text-xs font-semibold transition ${
-                selectedCategory === category
-                  ? "border-black bg-black text-white"
-                  : "border-gray-200 bg-white text-gray-700"
-              }`}
-            >
-              {category}
-            </button>
-          ))}
+        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-pink-100 via-white to-orange-100 p-6 sm:p-10">
+
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-pink-600">
+            New Collection
+          </p>
+
+          <h2 className="mt-2 max-w-xl text-3xl font-black tracking-tight text-gray-900 sm:text-5xl">
+            Beautiful styles for every occasion.
+          </h2>
+
+          <p className="mt-3 max-w-lg text-sm leading-6 text-gray-600 sm:text-base">
+            Discover elegant women's clothing,
+            kurtis and traditional styles designed
+            for everyday comfort and festive wear.
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              document
+                .getElementById("products")
+                ?.scrollIntoView({
+                  behavior: "smooth",
+                })
+            }
+            className="mt-5 rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white shadow-lg transition active:scale-95"
+          >
+            Shop Now →
+          </button>
 
         </div>
 
       </section>
 
-      {/* =====================================================
-          MESSAGE
-      ====================================================== */}
-
-      {message && (
-        <div className="fixed bottom-5 left-1/2 z-[70] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
-
-          <div className="rounded-xl bg-black px-4 py-3 text-center text-sm font-medium text-white shadow-2xl">
-
-            {message}
-
-          </div>
-
-        </div>
-      )}
-
-      {/* =====================================================
+      {/* =================================================
           PRODUCTS
-      ====================================================== */}
+      ================================================= */}
 
-      <section className="mx-auto max-w-7xl px-4 py-6">
+      <section
+        id="products"
+        className="mx-auto max-w-7xl px-4 py-8"
+      >
 
-        {/* SECTION TITLE */}
+        <div className="mb-5 flex items-end justify-between gap-3">
 
-        <div className="mb-5">
+          <div>
+            <h2 className="text-2xl font-black tracking-tight">
+              Women's Collection
+            </h2>
 
-          <div className="flex items-end justify-between gap-3">
-
-            <div>
-
-              <h2 className="text-xl font-bold sm:text-2xl">
-                Women&apos;s Kurtis
-              </h2>
-
-              <p className="mt-1 text-xs text-gray-500 sm:text-sm">
-                Beautiful styles for everyday and festive wear.
-              </p>
-
-            </div>
-
-            {!loading && (
-              <span className="text-xs text-gray-500">
-                {filteredProducts.length} items
-              </span>
-            )}
-
+            <p className="mt-1 text-sm text-gray-500">
+              {filteredProducts.length}{" "}
+              {filteredProducts.length === 1
+                ? "product"
+                : "products"}
+            </p>
           </div>
 
         </div>
@@ -687,27 +696,19 @@ export default function Home() {
         {loading && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
 
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(
-              (item) => (
+            {Array.from({ length: 8 }).map(
+              (_, index) => (
                 <div
-                  key={item}
-                  className="overflow-hidden rounded-xl border bg-white"
+                  key={index}
+                  className="animate-pulse overflow-hidden rounded-2xl bg-white shadow-sm"
                 >
-
-                  <div className="aspect-[3/4] animate-pulse bg-gray-200" />
+                  <div className="aspect-[3/4] bg-gray-200" />
 
                   <div className="space-y-2 p-3">
-
-                    <div className="h-3 w-1/3 animate-pulse rounded bg-gray-200" />
-
-                    <div className="h-4 w-4/5 animate-pulse rounded bg-gray-200" />
-
-                    <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200" />
-
-                    <div className="h-10 animate-pulse rounded-lg bg-gray-200" />
-
+                    <div className="h-3 w-16 rounded bg-gray-200" />
+                    <div className="h-4 w-full rounded bg-gray-200" />
+                    <div className="h-4 w-20 rounded bg-gray-200" />
                   </div>
-
                 </div>
               )
             )}
@@ -715,13 +716,13 @@ export default function Home() {
           </div>
         )}
 
-        {/* NO PRODUCTS */}
+        {/* EMPTY */}
 
         {!loading &&
           filteredProducts.length === 0 && (
-            <div className="rounded-2xl border bg-white px-5 py-16 text-center">
+            <div className="rounded-3xl bg-white px-5 py-16 text-center shadow-sm">
 
-              <div className="text-4xl">
+              <div className="text-5xl">
                 🛍️
               </div>
 
@@ -739,7 +740,7 @@ export default function Home() {
                   setSearch("");
                   setSelectedCategory("All");
                 }}
-                className="mt-5 rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white"
+                className="mt-5 rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white"
               >
                 View All Products
               </button>
@@ -751,64 +752,48 @@ export default function Home() {
 
         {!loading &&
           filteredProducts.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
 
               {filteredProducts.map(
-                (product) => {
+                (product) => (
+                  <article
+                    key={product.id}
+                    className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                  >
 
-                  const cartItem =
-                    cart.find(
-                      (item) =>
-                        item.id === product.id
-                    );
+                    {/* IMAGE */}
 
-                  return (
-                    <article
-                      key={product.id}
-                      className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                    >
+                    <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
 
-                      {/* PRODUCT IMAGE */}
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
 
-                      <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+                      {/* CATEGORY */}
 
-                        <img
-                          src={product.imageUrl}
-                          alt={product.name}
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        />
+                      <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold text-gray-700 shadow-sm backdrop-blur">
+                        {product.category}
+                      </span>
 
-                        {/* OUT OF STOCK */}
+                      {/* STOCK */}
 
-                        {(!product.active ||
-                          product.stock <= 0) && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                      {product.stock <= 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                          <span className="rounded-full bg-white px-3 py-2 text-xs font-bold">
+                            Out of Stock
+                          </span>
+                        </div>
+                      )}
 
-                            <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-black">
-                              Out of Stock
-                            </span>
+                    </div>
 
-                          </div>
-                        )}
+                    {/* DETAILS */}
 
-                        {/* CART QUANTITY */}
+                    <div className="p-3">
 
-                        {cartItem &&
-                          cartItem.quantity > 0 && (
-                            <div className="absolute right-2 top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-black px-2 text-xs font-bold text-white shadow">
-                              {cartItem.quantity}
-                            </div>
-                          )}
-
-                      </div>
-
-                      {/* PRODUCT DETAILS */}
-
-                      <div className="p-3">
-
-                        <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400 sm:text-xs">
-                          {product.category}
-                        </p>
-
-                        <h3 className="line-clamp-2 min-h-[36px] text-sm font-semibold leading-5">
+                      <h3 className="line-clamp-2 min-h-[40px] text-sm font-bold leading-5 text-gray-900">
+                        {product.name}
              
