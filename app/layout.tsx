@@ -4,7 +4,7 @@ export const metadata: Metadata = {
   title: "Bee Girl Shopping",
   description: "Women's Clothing",
   verification: {
-    google: "<meta name="google-site-verification" content="xiC2GuXgH7p_ucrAS1wJTvlQBao9sj7cfUteihTeCmw" />",
+    google: "xIC2GuXgH7p_ucrAS1wJTvIQBao9sj7cfUteihTcCmw",
   },
 };
 
