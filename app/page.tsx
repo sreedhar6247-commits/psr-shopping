@@ -25,7 +25,8 @@ const fallbackProducts: Product[] = [
     price: 799,
     category: "Kurtis",
     image: "/products/kurti-1.jpeg",
-    description: "Comfortable and stylish cotton kurti for everyday wear.",
+    description:
+      "Comfortable and stylish cotton kurti for everyday wear.",
     sizes: ["S", "M", "L", "XL", "XXL"],
     stock: 20,
   },
@@ -35,7 +36,8 @@ const fallbackProducts: Product[] = [
     price: 1199,
     category: "Kurtis",
     image: "/products/kurti-2.jpeg",
-    description: "Beautiful designer Anarkali kurti for festive occasions.",
+    description:
+      "Beautiful designer Anarkali kurti for festive occasions.",
     sizes: ["S", "M", "L", "XL"],
     stock: 15,
   },
@@ -45,7 +47,8 @@ const fallbackProducts: Product[] = [
     price: 899,
     category: "Kurtis",
     image: "/products/kurti-3.jpeg",
-    description: "Trendy printed kurti with a comfortable fit.",
+    description:
+      "Trendy printed kurti with a comfortable fit.",
     sizes: ["S", "M", "L", "XL", "XXL"],
     stock: 25,
   },
@@ -55,48 +58,61 @@ const fallbackProducts: Product[] = [
     price: 1499,
     category: "Kurtis",
     image: "/products/kurti-4.jpeg",
-    description: "Premium embroidered kurti for special occasions.",
+    description:
+      "Premium embroidered kurti for special occasions.",
     sizes: ["S", "M", "L", "XL"],
     stock: 10,
   },
 ];
 
 export default function Home() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] =
+    useState<Product[]>(fallbackProducts);
+
   const [cart, setCart] = useState<CartItem[]>([]);
+
   const [loading, setLoading] = useState(true);
+
   const [cartOpen, setCartOpen] = useState(false);
-  const [paying, setPaying] = useState(false);
-
-  const [message, setMessage] = useState("");
-
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
 
   const [selectedProduct, setSelectedProduct] =
     useState<Product | null>(null);
 
   const [selectedSize, setSelectedSize] = useState("M");
 
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] =
+    useState(false);
+
+  const [paying, setPaying] = useState(false);
+
+  const [message, setMessage] = useState("");
+
+  const [search, setSearch] = useState("");
+
+  const [selectedCategory, setSelectedCategory] =
+    useState("All");
 
   const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [customerAddress, setCustomerAddress] = useState("");
-  const [customerCity, setCustomerCity] = useState("");
-  const [customerPincode, setCustomerPincode] = useState("");
 
-  /*
-   * ---------------------------------------------------------
-   * LOAD PRODUCTS
-   * ---------------------------------------------------------
-   */
+  const [customerPhone, setCustomerPhone] =
+    useState("");
+
+  const [customerAddress, setCustomerAddress] =
+    useState("");
+
+  const [customerCity, setCustomerCity] =
+    useState("");
+
+  const [customerPincode, setCustomerPincode] =
+    useState("");
 
   useEffect(() => {
     loadProducts();
 
     try {
-      const savedCart = localStorage.getItem("sindhu-shopping-cart");
+      const savedCart = localStorage.getItem(
+        "Bee girl-shopping-cart"
+      );
 
       if (savedCart) {
         const parsedCart = JSON.parse(savedCart);
@@ -113,7 +129,7 @@ export default function Home() {
   useEffect(() => {
     try {
       localStorage.setItem(
-        "sindhu-shopping-cart",
+        "Bee girl-shopping-cart",
         JSON.stringify(cart)
       );
     } catch (error) {
@@ -154,30 +170,25 @@ export default function Home() {
       setMessage(
         "Showing sample products because the product service is unavailable."
       );
+
+      setTimeout(() => {
+        setMessage("");
+      }, 4000);
     } finally {
       setLoading(false);
     }
   }
-
-  /*
-   * ---------------------------------------------------------
-   * CATEGORIES
-   * ---------------------------------------------------------
-   */
 
   const categories = useMemo(() => {
     const values = products
       .map((product) => product.category)
       .filter(Boolean) as string[];
 
-    return ["All", ...Array.from(new Set(values))];
+    return [
+      "All",
+      ...Array.from(new Set(values)),
+    ];
   }, [products]);
-
-  /*
-   * ---------------------------------------------------------
-   * FILTER PRODUCTS
-   * ---------------------------------------------------------
-   */
 
   const filteredProducts = useMemo(() => {
     const searchText = search.trim().toLowerCase();
@@ -189,8 +200,12 @@ export default function Home() {
 
       const matchesSearch =
         !searchText ||
-        product.name.toLowerCase().includes(searchText) ||
-        (product.category || "").toLowerCase().includes(searchText) ||
+        product.name
+          .toLowerCase()
+          .includes(searchText) ||
+        (product.category || "")
+          .toLowerCase()
+          .includes(searchText) ||
         (product.description || "")
           .toLowerCase()
           .includes(searchText);
@@ -199,32 +214,40 @@ export default function Home() {
     });
   }, [products, search, selectedCategory]);
 
-  /*
-   * ---------------------------------------------------------
-   * CART
-   * ---------------------------------------------------------
-   */
-
   const cartCount = cart.reduce(
     (total, item) => total + item.quantity,
     0
   );
 
   const cartTotal = cart.reduce(
-    (total, item) => total + item.price * item.quantity,
+    (total, item) =>
+      total + item.price * item.quantity,
     0
   );
 
-  function addToCart(product: Product, size = "M") {
+  function showMessage(text: string) {
+    setMessage(text);
+
+    setTimeout(() => {
+      setMessage("");
+    }, 3000);
+  }
+
+  function addToCart(
+    product: Product,
+    size = "M"
+  ) {
     setCart((currentCart) => {
       const existing = currentCart.find(
         (item) =>
-          item.id === product.id && item.size === size
+          item.id === product.id &&
+          item.size === size
       );
 
       if (existing) {
         return currentCart.map((item) =>
-          item.id === product.id && item.size === size
+          item.id === product.id &&
+          item.size === size
             ? {
                 ...item,
                 quantity: item.quantity + 1,
@@ -237,23 +260,28 @@ export default function Home() {
         ...currentCart,
         {
           ...product,
-          size,
           quantity: 1,
+          size,
         },
       ];
     });
 
-    setMessage(`${product.name} added to cart.`);
-
-    setTimeout(() => {
-      setMessage("");
-    }, 2500);
+    showMessage(
+      `${product.name} added to cart.`
+    );
   }
 
-  function removeFromCart(id: number, size: string) {
+  function removeFromCart(
+    id: number,
+    size: string
+  ) {
     setCart((currentCart) =>
       currentCart.filter(
-        (item) => !(item.id === id && item.size === size)
+        (item) =>
+          !(
+            item.id === id &&
+            item.size === size
+          )
       )
     );
   }
@@ -266,16 +294,24 @@ export default function Home() {
     setCart((currentCart) =>
       currentCart
         .map((item) => {
-          if (item.id !== id || item.size !== size) {
+          if (
+            item.id !== id ||
+            item.size !== size
+          ) {
             return item;
           }
 
           return {
             ...item,
-            quantity: Math.max(0, item.quantity + change),
+            quantity: Math.max(
+              0,
+              item.quantity + change
+            ),
           };
         })
-        .filter((item) => item.quantity > 0)
+        .filter(
+          (item) => item.quantity > 0
+        )
     );
   }
 
@@ -283,24 +319,21 @@ export default function Home() {
     setSelectedProduct(product);
 
     const sizes =
-      product.sizes && product.sizes.length > 0
+      product.sizes &&
+      product.sizes.length > 0
         ? product.sizes
         : ["S", "M", "L", "XL"];
 
     setSelectedSize(
-      sizes.includes("M") ? "M" : sizes[0]
+      sizes.includes("M")
+        ? "M"
+        : sizes[0]
     );
   }
 
-  /*
-   * ---------------------------------------------------------
-   * CHECKOUT
-   * ---------------------------------------------------------
-   */
-
   function openCheckout() {
     if (cart.length === 0) {
-      setMessage("Your cart is empty.");
+      showMessage("Your cart is empty.");
       return;
     }
 
@@ -310,32 +343,39 @@ export default function Home() {
 
   function validateCheckout() {
     if (!customerName.trim()) {
-      setMessage("Please enter your name.");
+      showMessage("Please enter your name.");
       return false;
     }
 
-    if (!customerPhone.trim()) {
-      setMessage("Please enter your phone number.");
-      return false;
-    }
-
-    if (!/^[0-9]{10}$/.test(customerPhone.trim())) {
-      setMessage("Please enter a valid 10-digit phone number.");
+    if (
+      !/^[0-9]{10}$/.test(
+        customerPhone.trim()
+      )
+    ) {
+      showMessage(
+        "Please enter a valid 10-digit phone number."
+      );
       return false;
     }
 
     if (!customerAddress.trim()) {
-      setMessage("Please enter your address.");
+      showMessage("Please enter your address.");
       return false;
     }
 
     if (!customerCity.trim()) {
-      setMessage("Please enter your city.");
+      showMessage("Please enter your city.");
       return false;
     }
 
-    if (!/^[0-9]{6}$/.test(customerPincode.trim())) {
-      setMessage("Please enter a valid 6-digit pincode.");
+    if (
+      !/^[0-9]{6}$/.test(
+        customerPincode.trim()
+      )
+    ) {
+      showMessage(
+        "Please enter a valid 6-digit pincode."
+      );
       return false;
     }
 
@@ -349,16 +389,9 @@ export default function Home() {
 
     try {
       setPaying(true);
-      setMessage("");
-
-      /*
-       * Try the order API if it exists.
-       * If it doesn't exist yet, the order is still shown
-       * as a demo order so the website remains usable.
-       */
 
       try {
-        const response = await fetch("/api/orders", {
+        await fetch("/api/orders", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -375,18 +408,15 @@ export default function Home() {
             total: cartTotal,
           }),
         });
-
-        if (!response.ok) {
-          console.warn("Order API returned an error.");
-        }
-      } catch (apiError) {
+      } catch (error) {
         console.warn(
-          "Order API is not available yet:",
-          apiError
+          "Order API unavailable:",
+          error
         );
       }
 
       setCart([]);
+
       setCheckoutOpen(false);
 
       setCustomerName("");
@@ -395,40 +425,30 @@ export default function Home() {
       setCustomerCity("");
       setCustomerPincode("");
 
-      setMessage(
+      showMessage(
         "Order placed successfully! We will contact you shortly."
       );
-
-      setTimeout(() => {
-        setMessage("");
-      }, 5000);
     } catch (error) {
       console.error(error);
-      setMessage("Unable to place the order. Please try again.");
+
+      showMessage(
+        "Unable to place the order. Please try again."
+      );
     } finally {
       setPaying(false);
     }
   }
 
-  /*
-   * ---------------------------------------------------------
-   * FORMAT PRICE
-   * ---------------------------------------------------------
-   */
-
   function formatPrice(price: number) {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(price);
+    return new Intl.NumberFormat(
+      "en-IN",
+      {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }
+    ).format(price);
   }
-
-  /*
-   * ---------------------------------------------------------
-   * UI
-   * ---------------------------------------------------------
-   */
 
   return (
     <main className="min-h-screen bg-pink-50 text-gray-900">
@@ -438,12 +458,12 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
           <button
             type="button"
-            onClick={() => {
+            onClick={() =>
               window.scrollTo({
                 top: 0,
                 behavior: "smooth",
-              });
-            }}
+              })
+            }
             className="text-left"
           >
             <div className="text-2xl font-black text-pink-600">
@@ -469,7 +489,9 @@ export default function Home() {
 
           <button
             type="button"
-            onClick={() => setCartOpen(true)}
+            onClick={() =>
+              setCartOpen(true)
+            }
             className="relative rounded-full bg-pink-600 px-5 py-3 font-bold text-white shadow-sm transition hover:bg-pink-700"
           >
             🛒 Cart
@@ -498,7 +520,7 @@ export default function Home() {
       {/* MESSAGE */}
 
       {message && (
-        <div className="fixed left-1/2 top-24 z-50 w-[90%] max-w-md -translate-x-1/2 rounded-xl bg-gray-900 px-5 py-3 text-center text-sm font-medium text-white shadow-xl">
+        <div className="fixed left-1/2 top-24 z-[100] w-[90%] max-w-md -translate-x-1/2 rounded-xl bg-gray-900 px-5 py-3 text-center text-sm font-medium text-white shadow-xl">
           {message}
         </div>
       )}
@@ -519,19 +541,20 @@ export default function Home() {
             </h1>
 
             <p className="mt-5 max-w-xl text-lg leading-8 text-gray-600">
-              Discover stylish women's kurtis and outfits
-              at affordable prices from Sindhu Shopping.
+              Discover stylish women's kurtis
+              and outfits at affordable prices
+              from Bee Girl Shopping.
             </p>
 
             <button
               type="button"
-              onClick={() => {
+              onClick={() =>
                 document
                   .getElementById("products")
                   ?.scrollIntoView({
                     behavior: "smooth",
-                  });
-              }}
+                  })
+              }
               className="mt-8 rounded-full bg-pink-600 px-7 py-3 font-bold text-white shadow-lg transition hover:bg-pink-700"
             >
               Shop Now →
@@ -540,7 +563,9 @@ export default function Home() {
 
           <div className="flex min-h-[280px] items-center justify-center rounded-3xl bg-gradient-to-br from-pink-200 to-purple-200 p-8 shadow-inner">
             <div className="text-center">
-              <div className="text-7xl">👗</div>
+              <div className="text-7xl">
+                👗
+              </div>
 
               <div className="mt-4 text-2xl font-black text-pink-700">
                 Sindhu Shopping
@@ -563,7 +588,9 @@ export default function Home() {
               type="button"
               key={category}
               onClick={() =>
-                setSelectedCategory(category)
+                setSelectedCategory(
+                  category
+                )
               }
               className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold transition ${
                 selectedCategory === category
@@ -601,7 +628,9 @@ export default function Home() {
 
         {loading ? (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
+            {Array.from({
+              length: 8,
+            }).map((_, index) => (
               <div
                 key={index}
                 className="animate-pulse overflow-hidden rounded-2xl bg-white"
@@ -618,7 +647,9 @@ export default function Home() {
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="rounded-3xl bg-white p-12 text-center shadow-sm">
-            <div className="text-5xl">🔍</div>
+            <div className="text-5xl">
+              🔍
+            </div>
 
             <h3 className="mt-4 text-xl font-bold">
               No products found
@@ -641,62 +672,72 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {filteredProducts.map((product) => (
-              <article
-                key={product.id}
-                className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-              >
-                <button
-                  type="button"
-                  onClick={() => openProduct(product)}
-                  className="block w-full text-left"
+            {filteredProducts.map(
+              (product) => (
+                <article
+                  key={product.id}
+                  className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                 >
-                  <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-                    {product.image ? (
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                        onError={(event) => {
-                          event.currentTarget.style.display =
-                            "none";
-                        }}
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-6xl">
-                        👗
-                      </div>
-                    )}
-
-                    <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-pink-600">
-                      {product.category || "Fashion"}
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    <h3 className="line-clamp-2 min-h-[48px] font-bold">
-                      {product.name}
-                    </h3>
-
-                    <p className="mt-2 text-lg font-black text-pink-600">
-                      {formatPrice(product.price)}
-                    </p>
-                  </div>
-                </button>
-
-                <div className="px-4 pb-4">
                   <button
                     type="button"
                     onClick={() =>
-                      addToCart(product, "M")
+                      openProduct(product)
                     }
-                    className="w-full rounded-xl bg-pink-600 py-3 font-bold text-white transition hover:bg-pink-700"
+                    className="block w-full text-left"
                   >
-                    Add to Cart
+                    <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          onError={(event) => {
+                            event.currentTarget.style.display =
+                              "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-6xl">
+                          👗
+                        </div>
+                      )}
+
+                      <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-pink-600">
+                        {product.category ||
+                          "Fashion"}
+                      </div>
+                    </div>
+
+                    <div className="p-4">
+                      <h3 className="min-h-[48px] font-bold">
+                        {product.name}
+                      </h3>
+
+                      <p className="mt-2 text-lg font-black text-pink-600">
+                        {formatPrice(
+                          product.price
+                        )}
+                      </p>
+                    </div>
                   </button>
-                </div>
-              </article>
-            ))}
+
+                  <div className="px-4 pb-4">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        addToCart(
+                          product,
+                          "M"
+                        )
+                      }
+                      className="w-full rounded-xl bg-pink-600 py-3 font-bold text-white transition hover:bg-pink-700"
+                    >
+                      Add to Cart
+                    </button>
+                  </div>
+                </article>
+              )
+            )}
           </div>
         )}
       </section>
@@ -711,4 +752,23 @@ export default function Home() {
             </h3>
 
             <p className="mt-3 text-sm leading-7 text-gray-400">
-              Stylish women's clothing at affordable prices
+              Stylish women's clothing at
+              affordable prices.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold">
+              Quick Links
+            </h4>
+
+            <div className="mt-4 space-y-2 text-sm text-gray-400">
+              <button
+                type="button"
+                onClick={() =>
+                  window.scrollTo({
+                    top: 0,
+                    behavior: "smooth",
+                  })
+                }
+  
