@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import Link from "next/link";
 
 const products: Record<
   string,
@@ -73,34 +74,42 @@ export default function ProductPage({
         }}
       >
         <h1>Product Not Found</h1>
+
         <p>The product you are looking for does not exist.</p>
 
-        <a href="/products">← Back to Products</a>
+        <Link
+          href="/products"
+          style={{
+            display: "inline-block",
+            marginTop: 20,
+            padding: "12px 24px",
+            background: "#111",
+            color: "#fff",
+            textDecoration: "none",
+            borderRadius: 8,
+          }}
+        >
+          ← Back to Products
+        </Link>
       </main>
     );
   }
 
   function addToCart() {
+    const cartItem = {
+      id,
+      name: product.name,
+      price: product.price,
+      size,
+      quantity,
+      image: product.image,
+    };
+
     const existingCart = JSON.parse(
       localStorage.getItem("cart") || "[]"
     );
 
-    const existingItemIndex = existingCart.findIndex(
-      (item: any) => item.id === id && item.size === size
-    );
-
-    if (existingItemIndex >= 0) {
-      existingCart[existingItemIndex].quantity += quantity;
-    } else {
-      existingCart.push({
-        id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        size,
-        quantity,
-      });
-    }
+    existingCart.push(cartItem);
 
     localStorage.setItem("cart", JSON.stringify(existingCart));
 
@@ -116,24 +125,24 @@ export default function ProductPage({
       style={{
         maxWidth: 1100,
         margin: "0 auto",
-        padding: "30px 20px",
+        padding: "30px 20px 60px",
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <a
+      <Link
         href="/products"
         style={{
           textDecoration: "none",
           color: "#555",
-          display: "inline-block",
-          marginBottom: 25,
+          fontSize: 16,
         }}
       >
         ← Back to Products
-      </a>
+      </Link>
 
       <div
         style={{
+          marginTop: 25,
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: 40,
@@ -141,13 +150,12 @@ export default function ProductPage({
         }}
       >
         {/* PRODUCT IMAGE */}
-
         <div
           style={{
-            background: "#f8f8f8",
-            borderRadius: 15,
-            padding: 20,
-            textAlign: "center",
+            borderRadius: 16,
+            overflow: "hidden",
+            background: "#f5f5f5",
+            minHeight: 450,
           }}
         >
           <img
@@ -155,21 +163,20 @@ export default function ProductPage({
             alt={product.name}
             style={{
               width: "100%",
-              maxHeight: 550,
-              objectFit: "contain",
-              borderRadius: 12,
+              height: 450,
+              objectFit: "cover",
+              display: "block",
             }}
           />
         </div>
 
         {/* PRODUCT DETAILS */}
-
         <div>
           <p
             style={{
               color: "#777",
-              textTransform: "uppercase",
-              fontSize: 14,
+              fontSize: 16,
+              marginBottom: 8,
             }}
           >
             {product.category}
@@ -178,36 +185,41 @@ export default function ProductPage({
           <h1
             style={{
               fontSize: 36,
-              marginBottom: 15,
+              margin: "0 0 15px",
             }}
           >
             {product.name}
           </h1>
 
-          <h2
-            style={{
-              fontSize: 28,
-              color: "#e91e63",
-              marginBottom: 20,
-            }}
-          >
-            ₹{product.price}
-          </h2>
-
           <p
             style={{
-              color: "#555",
-              lineHeight: 1.7,
-              marginBottom: 30,
+              fontSize: 17,
+              lineHeight: 1.6,
+              color: "#666",
             }}
           >
             {product.description}
           </p>
 
-          {/* SIZE */}
+          <h2
+            style={{
+              fontSize: 32,
+              margin: "25px 0",
+            }}
+          >
+            ₹{product.price}
+          </h2>
 
+          {/* SIZE */}
           <div style={{ marginBottom: 25 }}>
-            <h3 style={{ marginBottom: 12 }}>Select Size</h3>
+            <h3
+              style={{
+                marginBottom: 12,
+                fontSize: 18,
+              }}
+            >
+              Select Size
+            </h3>
 
             <div
               style={{
@@ -216,21 +228,23 @@ export default function ProductPage({
                 flexWrap: "wrap",
               }}
             >
-              {["XS", "S", "M", "L", "XL", "XXL"].map((item) => (
+              {["S", "M", "L", "XL", "XXL"].map((item) => (
                 <button
                   key={item}
                   onClick={() => setSize(item)}
                   style={{
-                    padding: "12px 20px",
+                    width: 58,
+                    height: 48,
                     borderRadius: 8,
                     border:
                       size === item
-                        ? "2px solid #e91e63"
+                        ? "2px solid #000"
                         : "1px solid #ccc",
                     background:
-                      size === item ? "#e91e63" : "white",
+                      size === item ? "#000" : "#fff",
                     color:
-                      size === item ? "white" : "#333",
+                      size === item ? "#fff" : "#000",
+                    fontSize: 16,
                     fontWeight: "bold",
                     cursor: "pointer",
                   }}
@@ -239,12 +253,27 @@ export default function ProductPage({
                 </button>
               ))}
             </div>
+
+            <p
+              style={{
+                marginTop: 10,
+                color: "#555",
+              }}
+            >
+              Selected size: <strong>{size}</strong>
+            </p>
           </div>
 
           {/* QUANTITY */}
-
           <div style={{ marginBottom: 25 }}>
-            <h3 style={{ marginBottom: 12 }}>Quantity</h3>
+            <h3
+              style={{
+                marginBottom: 12,
+                fontSize: 18,
+              }}
+            >
+              Quantity
+            </h3>
 
             <div
               style={{
@@ -258,11 +287,11 @@ export default function ProductPage({
                   setQuantity(Math.max(1, quantity - 1))
                 }
                 style={{
-                  width: 42,
-                  height: 42,
+                  width: 45,
+                  height: 45,
                   border: "1px solid #ccc",
+                  background: "#fff",
                   borderRadius: 8,
-                  background: "white",
                   fontSize: 22,
                   cursor: "pointer",
                 }}
@@ -270,18 +299,24 @@ export default function ProductPage({
                 −
               </button>
 
-              <strong style={{ fontSize: 20 }}>
+              <strong
+                style={{
+                  fontSize: 20,
+                  minWidth: 25,
+                  textAlign: "center",
+                }}
+              >
                 {quantity}
               </strong>
 
               <button
                 onClick={() => setQuantity(quantity + 1)}
                 style={{
-                  width: 42,
-                  height: 42,
+                  width: 45,
+                  height: 45,
                   border: "1px solid #ccc",
+                  background: "#fff",
                   borderRadius: 8,
-                  background: "white",
                   fontSize: 22,
                   cursor: "pointer",
                 }}
@@ -292,44 +327,57 @@ export default function ProductPage({
           </div>
 
           {/* ADD TO CART */}
-
           <button
             onClick={addToCart}
             style={{
               width: "100%",
-              padding: "16px 20px",
+              padding: "18px",
               border: "none",
               borderRadius: 10,
-              background: added ? "#2e7d32" : "#e91e63",
-              color: "white",
-              fontSize: 18,
+              background: "#000",
+              color: "#fff",
+              fontSize: 19,
               fontWeight: "bold",
               cursor: "pointer",
-              marginBottom: 15,
             }}
           >
             {added ? "✓ Added to Cart" : "Add to Cart"}
           </button>
 
-          {/* GO TO CART */}
-
-          <a
-            href="/cart"
-            style={{
-              display: "block",
-              textAlign: "center",
-              padding: "15px",
-              border: "1px solid #e91e63",
-              borderRadius: 10,
-              color: "#e91e63",
-              textDecoration: "none",
-              fontWeight: "bold",
-            }}
-          >
-            🛒 View Cart
-          </a>
+          {added && (
+            <Link
+              href="/cart"
+              style={{
+                display: "block",
+                textAlign: "center",
+                marginTop: 15,
+                padding: "14px",
+                border: "1px solid #000",
+                borderRadius: 10,
+                textDecoration: "none",
+                color: "#000",
+                fontWeight: "bold",
+              }}
+            >
+              View Cart
+            </Link>
+          )}
         </div>
       </div>
+
+      {/* MOBILE RESPONSIVE STYLE */}
+      <style jsx>{`
+        @media (max-width: 700px) {
+          main > div {
+            grid-template-columns: 1fr !important;
+            gap: 25px !important;
+          }
+
+          h1 {
+            font-size: 28px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }
