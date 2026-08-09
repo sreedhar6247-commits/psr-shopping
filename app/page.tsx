@@ -329,7 +329,7 @@ export default function Home() {
               fontWeight: 800,
             }}
           >
-            🛍️ Sindhu Shopping
+            🛍️ Bee Girl Shopping
           </h1>
 
           <p
