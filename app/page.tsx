@@ -26,27 +26,24 @@ declare global {
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
-
   const [cartOpen, setCartOpen] = useState(false);
-
+  const [paying, setPaying] = useState(false);
   const [message, setMessage] = useState("");
-
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  /*
-   * ----------------------------------------------------
-   * LOAD PRODUCTS
-   * ----------------------------------------------------
-   */
+  // --------------------------------------------------
+  // LOAD PRODUCTS
+  // --------------------------------------------------
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
   async function loadProducts() {
     try {
       setLoading(true);
-      setMessage("");
 
       const response = await fetch("/api/products");
 
@@ -56,7 +53,7 @@ export default function Home() {
 
       const data = await response.json();
 
-      setProducts(data);
+      setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
       setMessage("Unable to load products. Please refresh the page.");
@@ -65,61 +62,40 @@ export default function Home() {
     }
   }
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  /*
-   * ----------------------------------------------------
-   * CATEGORIES
-   * ----------------------------------------------------
-   */
+  // --------------------------------------------------
+  // CATEGORIES
+  // --------------------------------------------------
 
   const categories = useMemo(() => {
-    const uniqueCategories = Array.from(
-      new Set(
-        products
-          .map((product) => product.category)
-          .filter(Boolean)
-      )
-    );
+    const values = products
+      .map((product) => product.category)
+      .filter(Boolean);
 
-    return ["All", ...uniqueCategories];
+    return ["All", ...Array.from(new Set(values))];
   }, [products]);
 
-  /*
-   * ----------------------------------------------------
-   * FILTER PRODUCTS
-   * ----------------------------------------------------
-   */
+  // --------------------------------------------------
+  // FILTER PRODUCTS
+  // --------------------------------------------------
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const matchesSearch =
-        product.name
-          .toLowerCase()
-          .includes(search.toLowerCase()) ||
-        product.description
-          .toLowerCase()
-          .includes(search.toLowerCase());
+        product.name.toLowerCase().includes(search.toLowerCase()) ||
+        product.description.toLowerCase().includes(search.toLowerCase()) ||
+        product.category.toLowerCase().includes(search.toLowerCase());
 
       const matchesCategory =
         selectedCategory === "All" ||
         product.category === selectedCategory;
 
-      return (
-        product.active &&
-        matchesSearch &&
-        matchesCategory
-      );
+      return matchesSearch && matchesCategory;
     });
   }, [products, search, selectedCategory]);
 
-  /*
-   * ----------------------------------------------------
-   * ADD TO CART
-   * ----------------------------------------------------
-   */
+  // --------------------------------------------------
+  // CART
+  // --------------------------------------------------
 
   function addToCart(product: Product) {
     if (!product.active || product.stock <= 0) {
@@ -155,29 +131,13 @@ export default function Home() {
     });
 
     setMessage(`${product.name} added to cart.`);
-
-    setTimeout(() => {
-      setMessage("");
-    }, 2500);
   }
-
-  /*
-   * ----------------------------------------------------
-   * REMOVE FROM CART
-   * ----------------------------------------------------
-   */
 
   function removeFromCart(id: number) {
     setCart((currentCart) =>
       currentCart.filter((item) => item.id !== id)
     );
   }
-
-  /*
-   * ----------------------------------------------------
-   * INCREASE QUANTITY
-   * ----------------------------------------------------
-   */
 
   function increaseQuantity(id: number) {
     setCart((currentCart) =>
@@ -195,12 +155,6 @@ export default function Home() {
     );
   }
 
-  /*
-   * ----------------------------------------------------
-   * DECREASE QUANTITY
-   * ----------------------------------------------------
-   */
-
   function decreaseQuantity(id: number) {
     setCart((currentCart) =>
       currentCart
@@ -215,12 +169,6 @@ export default function Home() {
         .filter((item) => item.quantity > 0)
     );
   }
-
-  /*
-   * ----------------------------------------------------
-   * CART TOTAL
-   * ----------------------------------------------------
-   */
 
   const cartCount = useMemo(() => {
     return cart.reduce(
@@ -237,16 +185,30 @@ export default function Home() {
     );
   }, [cart]);
 
-  /*
-   * ----------------------------------------------------
-   * LOAD RAZORPAY SCRIPT
-   * ----------------------------------------------------
-   */
+  // --------------------------------------------------
+  // RAZORPAY SCRIPT
+  // --------------------------------------------------
 
   function loadRazorpayScript(): Promise<boolean> {
     return new Promise((resolve) => {
       if (window.Razorpay) {
         resolve(true);
+        return;
+      }
+
+      const existingScript = document.querySelector(
+        'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+      );
+
+      if (existingScript) {
+        existingScript.addEventListener("load", () =>
+          resolve(true)
+        );
+
+        existingScript.addEventListener("error", () =>
+          resolve(false)
+        );
+
         return;
       }
 
@@ -262,11 +224,9 @@ export default function Home() {
     });
   }
 
-  /*
-   * ----------------------------------------------------
-   * START PAYMENT
-   * ----------------------------------------------------
-   */
+  // --------------------------------------------------
+  // START PAYMENT
+  // --------------------------------------------------
 
   async function startPayment() {
     if (cart.length === 0) {
@@ -278,10 +238,6 @@ export default function Home() {
     setMessage("");
 
     try {
-      /*
-       * Load Razorpay
-       */
-
       const loaded = await loadRazorpayScript();
 
       if (!loaded) {
@@ -289,10 +245,6 @@ export default function Home() {
           "Unable to load payment system."
         );
       }
-
-      /*
-       * Create Razorpay order
-       */
 
       const response = await fetch(
         "/api/razorpay/create-order",
@@ -303,7 +255,6 @@ export default function Home() {
           },
           body: JSON.stringify({
             amount: cartTotal,
-
             items: cart.map((item) => ({
               id: item.id,
               name: item.name,
@@ -315,26 +266,28 @@ export default function Home() {
       );
 
       if (!response.ok) {
-        const errorData =
-          await response.json().catch(() => null);
+        let errorMessage =
+          "Payment order could not be created.";
 
-        throw new Error(
-          errorData?.error ||
-            "Payment order could not be created."
-        );
+        try {
+          const errorData = await response.json();
+
+          errorMessage =
+            errorData?.error || errorMessage;
+        } catch {
+          // Ignore invalid error response
+        }
+
+        throw new Error(errorMessage);
       }
 
       const order = await response.json();
 
-      if (!order.id) {
+      if (!order?.id) {
         throw new Error(
           "Razorpay order ID is missing."
         );
       }
-
-      /*
-       * Razorpay public key
-       */
 
       const razorpayKey =
         order.keyId ||
@@ -346,10 +299,6 @@ export default function Home() {
         );
       }
 
-      /*
-       * Razorpay checkout options
-       */
-
       const options = {
         key: razorpayKey,
 
@@ -357,27 +306,19 @@ export default function Home() {
 
         currency: order.currency || "INR",
 
-        name: "Bee Girl Shopping",
+        name: "Sindhu Shopping",
 
         description: "Women's Clothing",
 
         order_id: order.id,
-
-        theme: {
-          color: "#111827",
-        },
 
         handler: async function (
           paymentResponse: any
         ) {
           try {
             setMessage(
-              "Payment received. Verifying..."
+              "Verifying payment..."
             );
-
-            /*
-             * Verify payment
-             */
 
             const verifyResponse = await fetch(
               "/api/razorpay/verify",
@@ -403,9 +344,7 @@ export default function Home() {
             );
 
             const verifyData =
-              await verifyResponse
-                .json()
-                .catch(() => null);
+              await verifyResponse.json();
 
             if (!verifyResponse.ok) {
               throw new Error(
@@ -414,40 +353,23 @@ export default function Home() {
               );
             }
 
-            /*
-             * Payment successful
-             */
-
             setMessage(
-              "Payment successful! Thank you for your order."
+              "Payment successful! Your order has been placed."
             );
 
             setCart([]);
             setCartOpen(false);
-
-            /*
-             * Refresh stock/products
-             */
-
-            await loadProducts();
           } catch (error) {
             console.error(error);
 
             setMessage(
               error instanceof Error
                 ? error.message
-                : "Payment verification failed."
+                : "Payment was received, but verification failed."
             );
           } finally {
             setPaying(false);
           }
-        },
-
-        modal: {
-          ondismiss: function () {
-            setPaying(false);
-            setMessage("Payment cancelled.");
-          },
         },
 
         prefill: {
@@ -457,16 +379,24 @@ export default function Home() {
         },
 
         notes: {
-          store: "Bee Girl Shopping",
+          store: "Sindhu Shopping",
+        },
+
+        theme: {
+          color: "#000000",
+        },
+
+        modal: {
+          ondismiss: function () {
+            setPaying(false);
+            setMessage("Payment cancelled.");
+          },
         },
       };
 
-      /*
-       * Open Razorpay
-       */
-
-      const razorpay =
-        new window.Razorpay(options);
+      const razorpay = new window.Razorpay(
+        options
+      );
 
       razorpay.on(
         "payment.failed",
@@ -487,10 +417,7 @@ export default function Home() {
 
       razorpay.open();
     } catch (error) {
-      console.error(
-        "Payment error:",
-        error
-      );
+      console.error("Payment error:", error);
 
       setMessage(
         error instanceof Error
@@ -502,96 +429,136 @@ export default function Home() {
     }
   }
 
-  /*
-   * ----------------------------------------------------
-   * FORMAT PRICE
-   * ----------------------------------------------------
-   */
+  // --------------------------------------------------
+  // FORMAT PRICE
+  // --------------------------------------------------
 
   function formatPrice(price: number) {
-    return new Intl.NumberFormat(
-      "en-IN",
-      {
-        style: "currency",
-        currency: "INR",
-        maximumFractionDigits: 0,
-      }
-    ).format(price);
+    return `₹${price.toLocaleString("en-IN")}`;
   }
 
-  /*
-   * ----------------------------------------------------
-   * PAGE
-   * ----------------------------------------------------
-   */
+  // --------------------------------------------------
+  // PAGE
+  // --------------------------------------------------
 
   return (
-    <main className="min-h-screen bg-gray-50 text-gray-900">
+    <main className="min-h-screen bg-white text-black">
+      {/* HEADER */}
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
-      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur">
-
-        <div className="mx-auto max-w-7xl px-4 py-3">
-
-          <div className="flex items-center justify-between gap-3">
-
+      <header className="sticky top-0 z-40 border-b bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* LOGO */}
 
             <div>
-              <h1 className="text-xl font-black tracking-tight text-gray-900 sm:text-2xl">
-                Bee Girl
+              <h1 className="text-2xl font-black tracking-tight">
+                Sindhu Shopping
               </h1>
 
-              <p className="text-xs font-medium text-gray-500">
-                Women's Fashion
+              <p className="text-sm text-gray-500">
+                Women's Clothing
               </p>
             </div>
 
-            {/* CART BUTTON */}
+            {/* SEARCH */}
+
+            <div className="flex flex-1 sm:max-w-md">
+              <input
+                type="search"
+                value={search}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
+                placeholder="Search women's clothing..."
+                className="w-full rounded-xl border px-4 py-3 text-sm outline-none focus:border-black"
+              />
+            </div>
+
+            {/* CART */}
 
             <button
               type="button"
               onClick={() => setCartOpen(true)}
-              className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-xl text-white shadow-sm transition active:scale-95"
-              aria-label="Open cart"
+              className="relative rounded-xl bg-black px-5 py-3 font-semibold text-white"
             >
-              🛒
+              Cart
 
               {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-600 px-1 text-[10px] font-bold text-white">
+                <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-xs font-bold text-black">
                   {cartCount}
                 </span>
               )}
             </button>
+          </div>
+        </div>
+      </header>
 
+      {/* MESSAGE */}
+
+      {message && (
+        <div className="mx-auto max-w-7xl px-4 pt-4">
+          <div className="rounded-xl border bg-gray-50 px-4 py-3 text-sm">
+            {message}
+          </div>
+        </div>
+      )}
+
+      {/* HERO */}
+
+      <section className="mx-auto max-w-7xl px-4 py-10">
+        <div className="rounded-3xl bg-gray-100 px-6 py-12 sm:px-10">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-500">
+            Sindhu Shopping
+          </p>
+
+          <h2 className="max-w-3xl text-4xl font-black tracking-tight sm:text-6xl">
+            Beautiful styles for every woman.
+          </h2>
+
+          <p className="mt-5 max-w-2xl text-base text-gray-600 sm:text-lg">
+            Discover stylish women's clothing at
+            affordable prices.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              const element =
+                document.getElementById(
+                  "products"
+                );
+
+              element?.scrollIntoView({
+                behavior: "smooth",
+              });
+            }}
+            className="mt-7 rounded-xl bg-black px-6 py-3 font-semibold text-white"
+          >
+            Shop Now
+          </button>
+        </div>
+      </section>
+
+      {/* PRODUCTS */}
+
+      <section
+        id="products"
+        className="mx-auto max-w-7xl px-4 pb-20"
+      >
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-3xl font-black">
+              Our Collection
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              {filteredProducts.length} products
+            </p>
           </div>
 
-          {/* SEARCH */}
+          {/* CATEGORY FILTER */}
 
-          <div className="relative mt-3">
-
-            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              🔍
-            </span>
-
-            <input
-              type="text"
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-              placeholder="Search women's clothing..."
-              className="w-full rounded-2xl border border-gray-200 bg-gray-100 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-gray-400 focus:bg-white"
-            />
-
-          </div>
-
-          {/* CATEGORY SCROLL */}
-
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+          <div className="flex gap-2 overflow-x-auto pb-2">
             {categories.map((category) => (
               <button
                 key={category}
@@ -599,201 +566,185 @@ export default function Home() {
                 onClick={() =>
                   setSelectedCategory(category)
                 }
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${
                   selectedCategory === category
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    ? "bg-black text-white"
+                    : "bg-gray-100 text-black"
                 }`}
               >
                 {category}
               </button>
             ))}
           </div>
-
         </div>
-      </header>
 
-      {/* =================================================
-          MESSAGE
-      ================================================= */}
+        {loading ? (
+          <div className="py-20 text-center">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-black" />
 
-      {message && (
-        <div className="fixed left-4 right-4 top-24 z-[60] mx-auto max-w-md">
-          <div className="rounded-2xl bg-gray-900 px-4 py-3 text-center text-sm font-medium text-white shadow-xl">
-            {message}
+            <p className="mt-4 text-gray-500">
+              Loading products...
+            </p>
           </div>
-        </div>
-      )}
+        ) : filteredProducts.length === 0 ? (
+          <div className="rounded-2xl bg-gray-50 py-20 text-center">
+            <h3 className="text-xl font-bold">
+              No products found
+            </h3>
 
-      {/* =================================================
-          HERO
-      ================================================= */}
+            <p className="mt-2 text-gray-500">
+              Try another search or category.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredProducts.map(
+              (product) => (
+                <article
+                  key={product.id}
+                  className="overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-1 hover:shadow-lg"
+                >
+                  {/* IMAGE */}
 
-      <section className="mx-auto max-w-7xl px-4 pt-5">
+                  <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="h-full w-full object-cover"
+                    />
 
-        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-pink-100 via-white to-orange-100 p-6 sm:p-10">
+                    {product.stock <= 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                        <span className="rounded-full bg-white px-4 py-2 text-sm font-bold">
+                          Out of Stock
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-pink-600">
-            New Collection
-          </p>
+                  {/* CONTENT */}
 
-          <h2 className="mt-2 max-w-xl text-3xl font-black tracking-tight text-gray-900 sm:text-5xl">
-            Beautiful styles for every occasion.
-          </h2>
+                  <div className="p-5">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                      {product.category}
+                    </p>
 
-          <p className="mt-3 max-w-lg text-sm leading-6 text-gray-600 sm:text-base">
-            Discover elegant women's clothing,
-            kurtis and traditional styles designed
-            for everyday comfort and festive wear.
-          </p>
+                    <h3 className="mt-2 line-clamp-2 min-h-[3rem] text-lg font-bold">
+                      {product.name}
+                    </h3>
+
+                    <p className="mt-2 line-clamp-2 text-sm text-gray-500">
+                      {product.description}
+                    </p>
+
+                    <div className="mt-5 flex items-center justify-between gap-3">
+                      <span className="text-xl font-black">
+                        {formatPrice(
+                          product.price
+                        )}
+                      </span>
+
+                      <span className="text-xs text-gray-500">
+                        {product.stock > 0
+                          ? `${product.stock} left`
+                          : "Sold out"}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={
+                        !product.active ||
+                        product.stock <= 0
+                      }
+                      onClick={() =>
+                        addToCart(product)
+                      }
+                      className="mt-5 w-full rounded-xl bg-black px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                    >
+                      {!product.active ||
+                      product.stock <= 0
+                        ? "Out of Stock"
+                        : "Add to Cart"}
+                    </button>
+                  </div>
+                </article>
+              )
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* CART OVERLAY */}
+
+      {cartOpen && (
+        <div className="fixed inset-0 z-50">
+          {/* BACKDROP */}
 
           <button
             type="button"
-            onClick={() =>
-              document
-                .getElementById("products")
-                ?.scrollIntoView({
-                  behavior: "smooth",
-                })
-            }
-            className="mt-5 rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white shadow-lg transition active:scale-95"
-          >
-            Shop Now →
-          </button>
+            aria-label="Close cart"
+            onClick={() => setCartOpen(false)}
+            className="absolute inset-0 h-full w-full bg-black/50"
+          />
 
-        </div>
+          {/* CART */}
 
-      </section>
+          <aside className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col bg-white shadow-2xl">
+            {/* CART HEADER */}
 
-      {/* =================================================
-          PRODUCTS
-      ================================================= */}
+            <div className="flex items-center justify-between border-b px-5 py-5">
+              <div>
+                <h2 className="text-2xl font-black">
+                  Your Cart
+                </h2>
 
-      <section
-        id="products"
-        className="mx-auto max-w-7xl px-4 py-8"
-      >
-
-        <div className="mb-5 flex items-end justify-between gap-3">
-
-          <div>
-            <h2 className="text-2xl font-black tracking-tight">
-              Women's Collection
-            </h2>
-
-            <p className="mt-1 text-sm text-gray-500">
-              {filteredProducts.length}{" "}
-              {filteredProducts.length === 1
-                ? "product"
-                : "products"}
-            </p>
-          </div>
-
-        </div>
-
-        {/* LOADING */}
-
-        {loading && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-
-            {Array.from({ length: 8 }).map(
-              (_, index) => (
-                <div
-                  key={index}
-                  className="animate-pulse overflow-hidden rounded-2xl bg-white shadow-sm"
-                >
-                  <div className="aspect-[3/4] bg-gray-200" />
-
-                  <div className="space-y-2 p-3">
-                    <div className="h-3 w-16 rounded bg-gray-200" />
-                    <div className="h-4 w-full rounded bg-gray-200" />
-                    <div className="h-4 w-20 rounded bg-gray-200" />
-                  </div>
-                </div>
-              )
-            )}
-
-          </div>
-        )}
-
-        {/* EMPTY */}
-
-        {!loading &&
-          filteredProducts.length === 0 && (
-            <div className="rounded-3xl bg-white px-5 py-16 text-center shadow-sm">
-
-              <div className="text-5xl">
-                🛍️
+                <p className="text-sm text-gray-500">
+                  {cartCount} item
+                  {cartCount !== 1 ? "s" : ""}
+                </p>
               </div>
-
-              <h3 className="mt-4 text-lg font-bold">
-                No products found
-              </h3>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Try another search or category.
-              </p>
 
               <button
                 type="button"
-                onClick={() => {
-                  setSearch("");
-                  setSelectedCategory("All");
-                }}
-                className="mt-5 rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white"
+                onClick={() =>
+                  setCartOpen(false)
+                }
+                className="rounded-full bg-gray-100 px-4 py-2 text-xl"
               >
-                View All Products
+                ×
               </button>
-
             </div>
-          )}
 
-        {/* PRODUCT GRID */}
+            {/* CART CONTENT */}
 
-        {!loading &&
-          filteredProducts.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
+            {cart.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center px-6 text-center">
+                <div>
+                  <div className="text-5xl">
+                    🛍️
+                  </div>
 
-              {filteredProducts.map(
-                (product) => (
-                  <article
-                    key={product.id}
-                    className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                  <h3 className="mt-4 text-xl font-bold">
+                    Your cart is empty
+                  </h3>
+
+                  <p className="mt-2 text-sm text-gray-500">
+                    Add some beautiful clothes
+                    to your cart.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCartOpen(false)
+                    }
+                    className="mt-5 rounded-xl bg-black px-5 py-3 font-semibold text-white"
                   >
-
-                    {/* IMAGE */}
-
-                    <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-
-                      {/* CATEGORY */}
-
-                      <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold text-gray-700 shadow-sm backdrop-blur">
-                        {product.category}
-                      </span>
-
-                      {/* STOCK */}
-
-                      {product.stock <= 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/45">
-                          <span className="rounded-full bg-white px-3 py-2 text-xs font-bold">
-                            Out of Stock
-                          </span>
-                        </div>
-                      )}
-
-                    </div>
-
-                    {/* DETAILS */}
-
-                    <div className="p-3">
-
-                      <h3 className="line-clamp-2 min-h-[40px] text-sm font-bold leading-5 text-gray-900">
-                        {product.name}
-             
+                    Continue Shopping
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+               
