@@ -85,7 +85,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("sindhu-shopping-cart");
+      const saved = localStorage.getItem("bee girl-shopping-cart");
 
       if (saved) {
         setCart(JSON.parse(saved));
@@ -98,7 +98,7 @@ export default function Home() {
   useEffect(() => {
     try {
       localStorage.setItem(
-        "sindhu-shopping-cart",
+        "bee girl-shopping-cart",
         JSON.stringify(cart)
       );
     } catch {}
@@ -270,7 +270,7 @@ export default function Home() {
             className="text-left"
           >
             <div className="text-2xl font-black text-pink-600">
-              Sindhu Shopping
+              bee girl Shopping
             </div>
 
             <div className="text-xs text-gray-500">
@@ -355,7 +355,7 @@ export default function Home() {
               <div className="text-8xl">👗</div>
 
               <h2 className="mt-4 text-3xl font-black text-pink-700">
-                Sindhu Shopping
+                Bee Girl Shopping
               </h2>
 
               <p className="mt-2 text-gray-600">
@@ -481,7 +481,7 @@ export default function Home() {
           </p>
 
           <p className="mt-6 text-sm text-gray-500">
-            © {new Date().getFullYear()} Sindhu Shopping
+            © {new Date().getFullYear()} Bee Girl Shopping
           </p>
         </div>
       </footer>
