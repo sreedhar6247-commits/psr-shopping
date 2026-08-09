@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "PSR Shopping",
-  description: "PSR Shopping - Women's Fashion"
+  title: "BEE GIRL Shopping",
+  description: "BEE GIRL Shopping - Women's Fashion"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
