@@ -2,257 +2,477 @@
 
 import { useEffect, useState } from "react";
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
+type CartItem = {
+  id: number;
+  name: string;
+  price: number;
+  size?: string;
+  color?: string;
+  quantity: number;
+};
+
 export default function CheckoutPage() {
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
-  const [state, setState] = useState("");
   const [pincode, setPincode] = useState("");
-
-  const [cart, setCart] = useState<any[]>([]);
-  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     try {
-      const savedCart = localStorage.getItem("cart");
+      const saved = localStorage.getItem("bee-girl-shopping-cart");
 
-      if (savedCart) {
-        const items = JSON.parse(savedCart);
-        setCart(items);
-
-        const amount = items.reduce(
-          (sum: number, item: any) =>
-            sum +
-            Number(item.price || 0) * Number(item.quantity || 1),
-          0
-        );
-
-        setTotal(amount);
+      if (saved) {
+        setCart(JSON.parse(saved));
       }
-    } catch (error) {
-      console.log("Cart error:", error);
+    } catch {
+      setCart([]);
     }
+
+    const script = document.createElement("script");
+
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
   }, []);
 
-  function placeOrder() {
-    if (!name || !phone || !address || !city || !state || !pincode) {
-      alert("Please fill all details.");
+  const total = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+
+  async function startPayment() {
+    if (!name.trim()) {
+      setMessage("Please enter your name.");
+      return;
+    }
+
+    if (!phone.trim()) {
+      setMessage("Please enter your phone number.");
+      return;
+    }
+
+    if (!address.trim()) {
+      setMessage("Please enter your address.");
+      return;
+    }
+
+    if (!city.trim()) {
+      setMessage("Please enter your city.");
+      return;
+    }
+
+    if (!pincode.trim()) {
+      setMessage("Please enter your pincode.");
       return;
     }
 
     if (cart.length === 0) {
-      alert("Your cart is empty.");
+      setMessage("Your cart is empty.");
       return;
     }
 
-    let message = `🛍️ *NEW ORDER - BEEGIRL SHOPPING*%0A%0A`;
+    setLoading(true);
+    setMessage("");
 
-    message += `👤 *Customer Details*%0A`;
-    message += `Name: ${name}%0A`;
-    message += `Phone: ${phone}%0A`;
-    message += `Address: ${address}%0A`;
-    message += `City: ${city}%0A`;
-    message += `State: ${state}%0A`;
-    message += `Pincode: ${pincode}%0A%0A`;
+    try {
+      const orderResponse = await fetch("/api/razorpay/order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: total,
+        }),
+      });
 
-    message += `🛒 *Order Details*%0A`;
+      const orderData = await orderResponse.json();
 
-    cart.forEach((item: any, index: number) => {
-      const quantity = Number(item.quantity || 1);
-      const price = Number(item.price || 0);
-      const itemTotal = price * quantity;
+      if (!orderResponse.ok) {
+        throw new Error(
+          orderData?.error || "Unable to create payment order"
+        );
+      }
 
-      message += `${index + 1}. ${item.name}%0A`;
-      message += `   Qty: ${quantity}%0A`;
-      message += `   Price: ₹${price}%0A`;
-      message += `   Total: ₹${itemTotal}%0A%0A`;
-    });
+      const razorpayKey =
+        process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
-    message += `💰 *TOTAL: ₹${total}*%0A%0A`;
-    message += `Thank you for shopping with Bee Girl Shopping ❤️`;
+      if (!razorpayKey) {
+        throw new Error(
+          "Razorpay Key ID is not configured."
+        );
+      }
 
-    /*
-      CHANGE THIS NUMBER TO YOUR WHATSAPP NUMBER.
+      const options = {
+        key: razorpayKey,
 
-      IMPORTANT:
-      Include country code.
-      India = 91
+        amount: orderData.amount,
 
-      Example:
-      919876543210
-    */
+        currency: "INR",
 
-    const whatsappNumber = "919876543210";
+        name: "Sindhu Shopping",
 
-    const whatsappURL =
-      `https://wa.me/${whatsappNumber}?text=${message}`;
+        description: "Women's Fashion Order",
 
-    window.location.href = whatsappURL;
+        order_id: orderData.id,
+
+        prefill: {
+          name: name,
+          contact: phone,
+        },
+
+        notes: {
+          customer_name: name,
+          phone: phone,
+          address: address,
+          city: city,
+          pincode: pincode,
+        },
+
+        theme: {
+          color: "#e5007d",
+        },
+
+        handler: async function (response: any) {
+          try {
+            setMessage("Verifying payment...");
+
+            const verifyResponse = await fetch(
+              "/api/razorpay/verify",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(response),
+              }
+            );
+
+            const verifyData =
+              await verifyResponse.json();
+
+            if (!verifyResponse.ok || !verifyData.success) {
+              setMessage(
+                "Payment verification failed. Please contact us."
+              );
+              setLoading(false);
+              return;
+            }
+
+            localStorage.removeItem(
+              "bee-girl-shopping-cart"
+            );
+
+            setCart([]);
+
+            setMessage(
+              `Payment successful! Payment ID: ${response.razorpay_payment_id}`
+            );
+
+            alert(
+              "Payment successful! Thank you for shopping with Sindhu Shopping."
+            );
+
+            window.location.href = "/";
+          } catch (error) {
+            console.error(error);
+
+            setMessage(
+              "Payment completed but verification failed. Please contact us."
+            );
+
+            setLoading(false);
+          }
+        },
+
+        modal: {
+          confirm_close: true,
+          escape: true,
+          backdropclose: false,
+        },
+
+        retry: {
+          enabled: true,
+        },
+      };
+
+      if (!window.Razorpay) {
+        throw new Error(
+          "Razorpay checkout is still loading. Please try again."
+        );
+      }
+
+      const razorpay = new window.Razorpay(options);
+
+      razorpay.on(
+        "payment.failed",
+        function (response: any) {
+          console.error(response);
+
+          setMessage(
+            response?.error?.description ||
+              "Payment failed. Please try again."
+          );
+
+          setLoading(false);
+        }
+      );
+
+      razorpay.open();
+
+      setLoading(false);
+    } catch (error: any) {
+      console.error(error);
+
+      setMessage(
+        error?.message ||
+          "Unable to start payment. Please try again."
+      );
+
+      setLoading(false);
+    }
   }
 
   return (
     <main
       style={{
-        maxWidth: "700px",
-        margin: "0 auto",
-        padding: "30px 20px",
-        fontFamily: "Arial, sans-serif",
+        minHeight: "100vh",
+        background: "#fff5fb",
+        padding: "30px 16px",
       }}
     >
-      <h1 style={{ textAlign: "center" }}>
-        Bee Girl Shopping
-      </h1>
-
-      <p style={{ textAlign: "center" }}>
-        Complete your order
-      </p>
-
-      <section
+      <div
         style={{
-          marginTop: "30px",
-          padding: "20px",
-          border: "1px solid #ddd",
-          borderRadius: "12px",
+          maxWidth: "700px",
+          margin: "0 auto",
         }}
       >
-        <h2>Customer Details</h2>
-
-        <input
-          placeholder="Full Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={inputStyle}
-        />
-
-        <input
-          placeholder="Phone Number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          style={inputStyle}
-          type="tel"
-        />
-
-        <textarea
-          placeholder="Full Address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
+        <h1
           style={{
-            ...inputStyle,
-            minHeight: "100px",
+            fontSize: "32px",
+            fontWeight: 800,
+            marginBottom: "8px",
           }}
-        />
+        >
+          Checkout
+        </h1>
 
-        <input
-          placeholder="City"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          style={inputStyle}
-        />
-
-        <input
-          placeholder="State"
-          value={state}
-          onChange={(e) => setState(e.target.value)}
-          style={inputStyle}
-        />
-
-        <input
-          placeholder="Pincode"
-          value={pincode}
-          onChange={(e) => setPincode(e.target.value)}
-          style={inputStyle}
-          type="number"
-        />
-      </section>
-
-      <section
-        style={{
-          marginTop: "25px",
-          padding: "20px",
-          border: "1px solid #ddd",
-          borderRadius: "12px",
-        }}
-      >
-        <h2>Order Summary</h2>
-
-        {cart.length === 0 ? (
-          <p>Your cart is empty.</p>
-        ) : (
-          cart.map((item: any, index: number) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "10px 0",
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              <span>
-                {item.name} × {item.quantity || 1}
-              </span>
-
-              <strong>
-                ₹
-                {Number(item.price || 0) *
-                  Number(item.quantity || 1)}
-              </strong>
-            </div>
-          ))
-        )}
+        <p
+          style={{
+            color: "#666",
+            marginBottom: "25px",
+          }}
+        >
+          Complete your order and pay securely.
+        </p>
 
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: "25px",
-            fontSize: "24px",
-            fontWeight: "bold",
+            background: "white",
+            borderRadius: "18px",
+            padding: "20px",
+            marginBottom: "20px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
           }}
         >
-          <span>Total</span>
+          <h2
+            style={{
+              fontSize: "20px",
+              marginBottom: "15px",
+            }}
+          >
+            Delivery Details
+          </h2>
 
-          <span style={{ color: "#e91e63" }}>
-            ₹{total}
-          </span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Full Name"
+            style={inputStyle}
+          />
+
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Phone Number"
+            type="tel"
+            style={inputStyle}
+          />
+
+          <textarea
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Full Address"
+            rows={4}
+            style={{
+              ...inputStyle,
+              resize: "vertical",
+            }}
+          />
+
+          <input
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="City"
+            style={inputStyle}
+          />
+
+          <input
+            value={pincode}
+            onChange={(e) => setPincode(e.target.value)}
+            placeholder="Pincode"
+            type="text"
+            inputMode="numeric"
+            style={inputStyle}
+          />
         </div>
-      </section>
 
-      <button
-        onClick={placeOrder}
-        style={{
-          width: "100%",
-          marginTop: "30px",
-          padding: "18px",
-          background: "#25D366",
-          color: "#ffffff",
-          border: "none",
-          borderRadius: "12px",
-          fontSize: "20px",
-          fontWeight: "bold",
-          cursor: "pointer",
-        }}
-      >
-        📱 Place Order on WhatsApp
-      </button>
+        <div
+          style={{
+            background: "white",
+            borderRadius: "18px",
+            padding: "20px",
+            marginBottom: "20px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+          }}
+        >
+          <h2
+            style={{
+              fontSize: "20px",
+              marginBottom: "15px",
+            }}
+          >
+            Order Summary
+          </h2>
 
-      <footer
-        style={{
-          textAlign: "center",
-          marginTop: "50px",
-          padding: "30px",
-          background: "#222",
-          color: "#fff",
-          borderRadius: "12px",
-        }}
-      >
-        <h2>Beegirl Shopping</h2>
-        <p>Women's Fashion • Sarees • Kurtis</p>
-        <p style={{ color: "#aaa" }}>
-          © 2026 Sindhu Shopping
+          {cart.length === 0 ? (
+            <p>Your cart is empty.</p>
+          ) : (
+            cart.map((item) => (
+              <div
+                key={`${item.id}-${item.size}-${item.color}`}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "10px",
+                  padding: "12px 0",
+                  borderBottom:
+                    "1px solid #eee",
+                }}
+              >
+                <div>
+                  <strong>{item.name}</strong>
+
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      color: "#777",
+                      marginTop: "4px",
+                    }}
+                  >
+                    Size: {item.size || "M"}
+                    {item.color
+                      ? ` • Colour: ${item.color}`
+                      : ""}
+
+                    {" • Qty: "}
+                    {item.quantity}
+                  </div>
+                </div>
+
+                <strong>
+                  ₹
+                  {(
+                    item.price * item.quantity
+                  ).toLocaleString("en-IN")}
+                </strong>
+              </div>
+            ))
+          )}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "22px",
+              fontWeight: 800,
+              marginTop: "20px",
+            }}
+          >
+            <span>Total</span>
+
+            <span>
+              ₹{total.toLocaleString("en-IN")}
+            </span>
+          </div>
+        </div>
+
+        {message && (
+          <div
+            style={{
+              background: "#fff0f6",
+              color: "#c00065",
+              borderRadius: "12px",
+              padding: "14px",
+              marginBottom: "15px",
+              fontWeight: 600,
+            }}
+          >
+            {message}
+          </div>
+        )}
+
+        <button
+          onClick={startPayment}
+          disabled={loading || cart.length === 0}
+          style={{
+            width: "100%",
+            border: "none",
+            borderRadius: "14px",
+            padding: "17px",
+            background:
+              loading || cart.length === 0
+                ? "#aaa"
+                : "#e5007d",
+            color: "white",
+            fontSize: "18px",
+            fontWeight: 800,
+            cursor:
+              loading || cart.length === 0
+                ? "not-allowed"
+                : "pointer",
+          }}
+        >
+          {loading
+            ? "Processing..."
+            : `Pay ₹${total.toLocaleString("en-IN")}`}
+        </button>
+
+        <p
+          style={{
+            textAlign: "center",
+            color: "#777",
+            fontSize: "13px",
+            marginTop: "12px",
+          }}
+        >
+          Secure payment powered by Razorpay
         </p>
-      </footer>
+      </div>
     </main>
   );
 }
@@ -260,9 +480,9 @@ export default function CheckoutPage() {
 const inputStyle = {
   width: "100%",
   boxSizing: "border-box" as const,
-  padding: "16px",
-  marginTop: "15px",
-  border: "1px solid #ddd",
+  padding: "14px",
+  marginBottom: "12px",
+  border: "1px solid #ccc",
   borderRadius: "10px",
   fontSize: "16px",
   outline: "none",
