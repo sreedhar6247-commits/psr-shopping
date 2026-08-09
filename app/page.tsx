@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Product = {
   id: number;
@@ -26,30 +26,96 @@ declare global {
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [cartOpen, setCartOpen] = useState(false);
   const [paying, setPaying] = useState(false);
+
   const [message, setMessage] = useState("");
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  /*
+   * ---------------------------------------------------------
+   * LOAD PRODUCTS
+   * ---------------------------------------------------------
+   */
 
   useEffect(() => {
-    fetch("/api/products")
-      .then((res) => {
-        if (!res.ok) {
+    async function loadProducts() {
+      try {
+        setLoading(true);
+
+        const response = await fetch("/api/products");
+
+        if (!response.ok) {
           throw new Error("Unable to load products");
         }
 
-        return res.json();
-      })
-      .then((data) => {
+        const data = await response.json();
+
         setProducts(data);
-        setLoading(false);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error(error);
+        setMessage("Unable to load products. Please refresh the page.");
+      } finally {
         setLoading(false);
-        setMessage("Unable to load products.");
-      });
+      }
+    }
+
+    loadProducts();
   }, []);
+
+  /*
+   * ---------------------------------------------------------
+   * CATEGORIES
+   * ---------------------------------------------------------
+   */
+
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(
+      new Set(
+        products
+          .map((product) => product.category)
+          .filter(Boolean)
+      )
+    );
+
+    return ["All", ...uniqueCategories];
+  }, [products]);
+
+  /*
+   * ---------------------------------------------------------
+   * FILTER PRODUCTS
+   * ---------------------------------------------------------
+   */
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesSearch =
+        product.name
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
+        product.description
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
+        product.category
+          .toLowerCase()
+          .includes(search.toLowerCase());
+
+      const matchesCategory =
+        selectedCategory === "All" ||
+        product.category === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, search, selectedCategory]);
+
+  /*
+   * ---------------------------------------------------------
+   * CART FUNCTIONS
+   * ---------------------------------------------------------
+   */
 
   function addToCart(product: Product) {
     if (!product.active || product.stock <= 0) {
@@ -85,6 +151,10 @@ export default function Home() {
     });
 
     setMessage(`${product.name} added to cart.`);
+
+    setTimeout(() => {
+      setMessage("");
+    }, 2500);
   }
 
   function removeFromCart(id: number) {
@@ -124,15 +194,28 @@ export default function Home() {
     );
   }
 
+  /*
+   * ---------------------------------------------------------
+   * CART TOTALS
+   * ---------------------------------------------------------
+   */
+
   const cartCount = cart.reduce(
     (total, item) => total + item.quantity,
     0
   );
 
   const cartTotal = cart.reduce(
-    (total, item) => total + item.price * item.quantity,
+    (total, item) =>
+      total + item.price * item.quantity,
     0
   );
+
+  /*
+   * ---------------------------------------------------------
+   * LOAD RAZORPAY
+   * ---------------------------------------------------------
+   */
 
   function loadRazorpayScript(): Promise<boolean> {
     return new Promise((resolve) => {
@@ -147,11 +230,18 @@ export default function Home() {
         "https://checkout.razorpay.com/v1/checkout.js";
 
       script.onload = () => resolve(true);
+
       script.onerror = () => resolve(false);
 
       document.body.appendChild(script);
     });
   }
+
+  /*
+   * ---------------------------------------------------------
+   * START PAYMENT
+   * ---------------------------------------------------------
+   */
 
   async function startPayment() {
     if (cart.length === 0) {
@@ -163,13 +253,24 @@ export default function Home() {
     setMessage("");
 
     try {
+      /*
+       * Load Razorpay
+       */
+
       const loaded = await loadRazorpayScript();
 
       if (!loaded) {
-        setMessage("Unable to load payment system.");
+        setMessage(
+          "Unable to load payment system. Please try again."
+        );
+
         setPaying(false);
         return;
       }
+
+      /*
+       * Create Razorpay order
+       */
 
       const response = await fetch(
         "/api/razorpay/create-order",
@@ -191,7 +292,9 @@ export default function Home() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
+        const errorData = await response
+          .json()
+          .catch(() => null);
 
         throw new Error(
           errorData?.error ||
@@ -202,8 +305,17 @@ export default function Home() {
       const order = await response.json();
 
       if (!order.id) {
-        throw new Error("Razorpay order ID is missing");
+        throw new Error(
+          "Razorpay order ID is missing"
+        );
       }
+
+      /*
+       * Razorpay public key
+       *
+       * Your API can return keyId.
+       * Otherwise this uses NEXT_PUBLIC_RAZORPAY_KEY_ID.
+       */
 
       const razorpayKey =
         order.keyId ||
@@ -214,6 +326,10 @@ export default function Home() {
           "Razorpay public key is not configured"
         );
       }
+
+      /*
+       * Razorpay checkout
+       */
 
       const options = {
         key: razorpayKey,
@@ -228,17 +344,42 @@ export default function Home() {
 
         order_id: order.id,
 
-        handler: async function (paymentResponse: any) {
+        prefill: {
+          name: "",
+          email: "",
+          contact: "",
+        },
+
+        notes: {
+          store: "Bee Girl Shopping",
+        },
+
+        theme: {
+          color: "#111827",
+        },
+
+        handler: async function (
+          paymentResponse: any
+        ) {
           try {
-            setMessage("Verifying payment...");
+            setMessage(
+              "Verifying payment..."
+            );
+
+            /*
+             * Verify payment on server
+             */
 
             const verifyResponse = await fetch(
               "/api/razorpay/verify",
               {
                 method: "POST",
+
                 headers: {
-                  "Content-Type": "application/json",
+                  "Content-Type":
+                    "application/json",
                 },
+
                 body: JSON.stringify({
                   razorpay_order_id:
                     paymentResponse.razorpay_order_id,
@@ -253,32 +394,36 @@ export default function Home() {
             );
 
             const verifyData =
-              await verifyResponse.json();
+              await verifyResponse
+                .json()
+                .catch(() => null);
 
-            if (!verifyResponse.ok || !verifyData.success) {
-              setMessage(
-                verifyData.error ||
-                  "Payment verification failed."
+            if (!verifyResponse.ok) {
+              throw new Error(
+                verifyData?.error ||
+                  "Payment verification failed"
               );
-
-              setPaying(false);
-              return;
             }
 
+            /*
+             * Payment successful
+             */
+
             setMessage(
-              "Payment confirmed successfully! Thank you for your order."
+              "Payment successful! Thank you for your order."
             );
 
             setCart([]);
             setCartOpen(false);
-            setPaying(false);
           } catch (error) {
             console.error(error);
 
             setMessage(
-              "Payment was received, but verification failed. Please contact us."
+              error instanceof Error
+                ? error.message
+                : "Payment verification failed. Please contact support."
             );
-
+          } finally {
             setPaying(false);
           }
         },
@@ -286,33 +431,26 @@ export default function Home() {
         modal: {
           ondismiss: function () {
             setPaying(false);
-            setMessage("Payment cancelled.");
+            setMessage(
+              "Payment cancelled."
+            );
           },
-        },
-
-        prefill: {
-          name: "",
-          email: "",
-          contact: "",
-        },
-
-        notes: {
-          store: "Bee Girl Shopping",
-        },
-
-        theme: {
-          color: "#000000",
         },
       };
 
-      const razorpay = new window.Razorpay(options);
+      const razorpay =
+        new window.Razorpay(options);
+
+      /*
+       * Payment failed event
+       */
 
       razorpay.on(
         "payment.failed",
         function (response: any) {
           console.error(
             "Payment failed:",
-            response.error
+            response?.error
           );
 
           setMessage(
@@ -326,7 +464,10 @@ export default function Home() {
 
       razorpay.open();
     } catch (error) {
-      console.error("Payment error:", error);
+      console.error(
+        "Payment error:",
+        error
+      );
 
       setMessage(
         error instanceof Error
@@ -338,314 +479,336 @@ export default function Home() {
     }
   }
 
-  return (
-    <main className="min-h-screen bg-white text-black">
-      {/* HEADER */}
+  /*
+   * ---------------------------------------------------------
+   * FORMAT PRICE
+   * ---------------------------------------------------------
+   */
 
-      <header className="mx-auto max-w-7xl px-6 py-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-4">
+  function formatPrice(price: number) {
+    return new Intl.NumberFormat(
+      "en-IN",
+      {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }
+    ).format(price);
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * PAGE
+   * ---------------------------------------------------------
+   */
+
+  return (
+    <main className="min-h-screen bg-gray-50 text-gray-900">
+
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
+
+      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur">
+
+        <div className="mx-auto max-w-7xl px-4">
+
+          <div className="flex min-h-[68px] items-center justify-between gap-3">
+
+            {/* LOGO */}
+
+            <div className="min-w-0">
+
+              <div className="flex items-center gap-2">
+
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg text-white">
+                  🐝
+                </div>
+
+                <div className="min-w-0">
+
+                  <h1 className="truncate text-base font-bold sm:text-lg">
+                    Bee Girl Shopping
+                  </h1>
+
+                  <p className="text-[11px] text-gray-500 sm:text-xs">
+                    Women&apos;s Clothing
+                  </p>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* CART BUTTON */}
+
+            <button
+              type="button"
+              onClick={() =>
+                setCartOpen(true)
+              }
+              className="relative flex shrink-0 items-center gap-1.5 rounded-full bg-black px-3.5 py-2.5 text-sm font-semibold text-white transition active:scale-95"
+            >
+
+              <span>🛒</span>
+
+              <span className="hidden sm:inline">
+                Cart
+              </span>
+
+              {cartCount > 0 && (
+                <span className="rounded-full bg-white px-1.5 text-xs font-bold text-black">
+                  {cartCount}
+                </span>
+              )}
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </header>
+
+      {/* =====================================================
+          SEARCH + CATEGORY AREA
+      ====================================================== */}
+
+      <section className="mx-auto max-w-7xl px-4 pt-4">
+
+        {/* SEARCH */}
+
+        <div className="flex items-center rounded-xl border bg-white px-3 shadow-sm">
+
+          <span className="mr-2 text-lg">
+            🔍
+          </span>
+
+          <input
+            type="text"
+            value={search}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
+            placeholder="Search women's clothing..."
+            className="w-full bg-transparent py-3 text-sm outline-none"
+          />
+
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="rounded-full px-2 text-gray-500"
+            >
+              ✕
+            </button>
+          )}
+
+        </div>
+
+        {/* CATEGORY FILTER */}
+
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+
+          {categories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() =>
+                setSelectedCategory(category)
+              }
+              className={`whitespace-nowrap rounded-full border px-4 py-2 text-xs font-semibold transition ${
+                selectedCategory === category
+                  ? "border-black bg-black text-white"
+                  : "border-gray-200 bg-white text-gray-700"
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+
+        </div>
+
+      </section>
+
+      {/* =====================================================
+          MESSAGE
+      ====================================================== */}
+
+      {message && (
+        <div className="fixed bottom-5 left-1/2 z-[70] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
+
+          <div className="rounded-xl bg-black px-4 py-3 text-center text-sm font-medium text-white shadow-2xl">
+
+            {message}
+
+          </div>
+
+        </div>
+      )}
+
+      {/* =====================================================
+          PRODUCTS
+      ====================================================== */}
+
+      <section className="mx-auto max-w-7xl px-4 py-6">
+
+        {/* SECTION TITLE */}
+
+        <div className="mb-5">
+
+          <div className="flex items-end justify-between gap-3">
+
+            <div>
+
+              <h2 className="text-xl font-bold sm:text-2xl">
+                Women&apos;s Kurtis
+              </h2>
+
+              <p className="mt-1 text-xs text-gray-500 sm:text-sm">
+                Beautiful styles for everyday and festive wear.
+              </p>
+
+            </div>
+
+            {!loading && (
+              <span className="text-xs text-gray-500">
+                {filteredProducts.length} items
+              </span>
+            )}
+
+          </div>
+
+        </div>
+
+        {/* LOADING */}
+
+        {loading && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(
+              (item) => (
+                <div
+                  key={item}
+                  className="overflow-hidden rounded-xl border bg-white"
+                >
+
+                  <div className="aspect-[3/4] animate-pulse bg-gray-200" />
+
+                  <div className="space-y-2 p-3">
+
+                    <div className="h-3 w-1/3 animate-pulse rounded bg-gray-200" />
+
+                    <div className="h-4 w-4/5 animate-pulse rounded bg-gray-200" />
+
+                    <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200" />
+
+                    <div className="h-10 animate-pulse rounded-lg bg-gray-200" />
+
+                  </div>
+
+                </div>
+              )
+            )}
+
+          </div>
+        )}
+
+        {/* NO PRODUCTS */}
+
+        {!loading &&
+          filteredProducts.length === 0 && (
+            <div className="rounded-2xl border bg-white px-5 py-16 text-center">
+
               <div className="text-4xl">
                 🛍️
               </div>
 
-              <h1 className="text-4xl font-black tracking-tight">
-                Bee Girl
-                <br />
-                Shopping
-              </h1>
-            </div>
+              <h3 className="mt-4 text-lg font-bold">
+                No products found
+              </h3>
 
-            <p className="mt-4 text-xl text-gray-600">
-              Women's Clothing
-            </p>
-          </div>
-
-          <button
-            onClick={() => setCartOpen(true)}
-            className="rounded-3xl bg-black px-8 py-5 text-xl font-semibold text-white"
-          >
-            🛒 Cart ({cartCount})
-          </button>
-        </div>
-      </header>
-
-      {/* MESSAGE */}
-
-      {message && (
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="rounded-xl bg-gray-100 px-5 py-4 text-center">
-            {message}
-          </div>
-        </div>
-      )}
-
-      {/* PRODUCTS */}
-
-      <section className="mx-auto max-w-7xl px-6 py-10">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold">
-            Women's Kurtis
-          </h2>
-
-          <p className="mt-2 text-gray-600">
-            Beautiful styles for everyday and festive wear.
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="py-20 text-center text-xl">
-            Loading products...
-          </div>
-        ) : products.length === 0 ? (
-          <div className="rounded-2xl border p-10 text-center">
-            No products available.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product) => (
-              <article
-                key={product.id}
-                className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
-              >
-                {/* PRODUCT IMAGE */}
-
-                <div className="relative h-80 w-full overflow-hidden bg-gray-100">
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                    onError={(event) => {
-                      const image =
-                        event.currentTarget;
-
-                      image.style.display = "none";
-
-                      const parent =
-                        image.parentElement;
-
-                      if (parent) {
-                        parent.innerHTML = `
-                          <div
-                            style="
-                              height:100%;
-                              width:100%;
-                              display:flex;
-                              align-items:center;
-                              justify-content:center;
-                              flex-direction:column;
-                              background:#f3f4f6;
-                              color:#6b7280;
-                              text-align:center;
-                              padding:20px;
-                            "
-                          >
-                            <div style="font-size:48px;">
-                              👗
-                            </div>
-
-                            <div
-                              style="
-                                font-size:16px;
-                                margin-top:8px;
-                              "
-                            >
-                              Product Image
-                            </div>
-                          </div>
-                        `;
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* PRODUCT INFORMATION */}
-
-                <div className="p-6">
-                  <p className="text-sm font-medium text-gray-500">
-                    {product.category}
-                  </p>
-
-                  <h3 className="mt-2 text-2xl font-bold">
-                    {product.name}
-                  </h3>
-
-                  <p className="mt-3 min-h-[72px] text-gray-600">
-                    {product.description}
-                  </p>
-
-                  <div className="mt-5 flex items-center justify-between">
-                    <span className="text-3xl font-black">
-                      ₹{product.price}
-                    </span>
-
-                    <span className="text-sm text-gray-500">
-                      {product.stock} available
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => addToCart(product)}
-                    disabled={
-                      !product.active ||
-                      product.stock <= 0
-                    }
-                    className="mt-6 w-full rounded-2xl bg-black px-5 py-4 text-lg font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-400"
-                  >
-                    {product.stock <= 0
-                      ? "Out of Stock"
-                      : "Add to Cart"}
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* CART OVERLAY */}
-
-      {cartOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50">
-          <div className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto bg-white p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold">
-                Your Cart
-              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Try another search or category.
+              </p>
 
               <button
-                onClick={() => setCartOpen(false)}
-                className="rounded-full bg-gray-100 px-4 py-2 text-xl"
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setSelectedCategory("All");
+                }}
+                className="mt-5 rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white"
               >
-                ✕
+                View All Products
               </button>
+
             </div>
+          )}
 
-            {cart.length === 0 ? (
-              <div className="py-20 text-center text-lg text-gray-500">
-                Your cart is empty.
-              </div>
-            ) : (
-              <>
-                {/* CART ITEMS */}
+        {/* PRODUCT GRID */}
 
-                <div className="mt-8 space-y-5">
-                  {cart.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-2xl border p-4"
+        {!loading &&
+          filteredProducts.length > 0 && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+
+              {filteredProducts.map(
+                (product) => {
+
+                  const cartItem =
+                    cart.find(
+                      (item) =>
+                        item.id === product.id
+                    );
+
+                  return (
+                    <article
+                      key={product.id}
+                      className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                     >
-                      <div className="flex gap-4">
+
+                      {/* PRODUCT IMAGE */}
+
+                      <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+
                         <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="h-24 w-20 rounded-xl object-cover"
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                         />
 
-                        <div className="flex-1">
-                          <h3 className="font-bold">
-                            {item.name}
-                          </h3>
+                        {/* OUT OF STOCK */}
 
-                          <p className="mt-1 text-gray-600">
-                            ₹{item.price}
-                          </p>
+                        {(!product.active ||
+                          product.stock <= 0) && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/45">
 
-                          <div className="mt-3 flex items-center gap-3">
-                            <button
-                              onClick={() =>
-                                decreaseQuantity(
-                                  item.id
-                                )
-                              }
-                              className="h-9 w-9 rounded-full bg-gray-200"
-                            >
-                              −
-                            </button>
-
-                            <span className="font-bold">
-                              {item.quantity}
+                            <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-black">
+                              Out of Stock
                             </span>
 
-                            <button
-                              onClick={() =>
-                                increaseQuantity(
-                                  item.id
-                                )
-                              }
-                              className="h-9 w-9 rounded-full bg-gray-200"
-                            >
-                              +
-                            </button>
-
-                            <button
-                              onClick={() =>
-                                removeFromCart(item.id)
-                              }
-                              className="ml-auto text-sm text-red-600"
-                            >
-                              Remove
-                            </button>
                           </div>
-                        </div>
+                        )}
+
+                        {/* CART QUANTITY */}
+
+                        {cartItem &&
+                          cartItem.quantity > 0 && (
+                            <div className="absolute right-2 top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-black px-2 text-xs font-bold text-white shadow">
+                              {cartItem.quantity}
+                            </div>
+                          )}
+
                       </div>
-                    </div>
-                  ))}
-                </div>
 
-                {/* TOTAL */}
+                      {/* PRODUCT DETAILS */}
 
-                <div className="mt-8 rounded-2xl bg-gray-100 p-5">
-                  <div className="flex justify-between text-lg">
-                    <span>Items</span>
-                    <span>{cartCount}</span>
-                  </div>
+                      <div className="p-3">
 
-                  <div className="mt-3 flex justify-between text-2xl font-bold">
-                    <span>Total</span>
-                    <span>₹{cartTotal}</span>
-                  </div>
-                </div>
+                        <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400 sm:text-xs">
+                          {product.category}
+                        </p>
 
-                {/* CHECKOUT */}
-
-                <button
-                  onClick={startPayment}
-                  disabled={paying}
-                  className="mt-6 w-full rounded-2xl bg-black px-5 py-5 text-xl font-semibold text-white disabled:bg-gray-500"
-                >
-                  {paying
-                    ? "Opening Payment..."
-                    : `Pay ₹${cartTotal}`}
-                </button>
-
-                <p className="mt-4 text-center text-sm text-gray-500">
-                  Secure checkout • UPI / Cards / Net Banking
-                </p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* FOOTER */}
-
-      <footer className="mt-20 border-t px-6 py-10 text-center">
-        <h3 className="text-2xl font-bold">
-          Bee Girl Shopping
-        </h3>
-
-        <p className="mt-2 text-gray-600">
-          Women's Clothing
-        </p>
-
-        <p className="mt-5 text-sm text-gray-500">
-          © {new Date().getFullYear()} Bee Girl Shopping.
-          All rights reserved.
-        </p>
-      </footer>
-    </main>
-  );
-      }
+                        <h3 className="line-clamp-2 min-h-[36px] text-sm font-semibold leading-5">
+             
