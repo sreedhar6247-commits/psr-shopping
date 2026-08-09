@@ -135,7 +135,7 @@ export default function Home() {
               color: "#222",
             }}
           >
-            Sindhu Shopping
+            BEE GIRL Shopping
           </h1>
 
           <p
