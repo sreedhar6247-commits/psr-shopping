@@ -70,7 +70,7 @@ export default function CheckoutPage() {
     });
 
     message += `💰 *TOTAL: ₹${total}*%0A%0A`;
-    message += `Thank you for shopping with Sindhu Shopping ❤️`;
+    message += `Thank you for shopping with Bee Girl Shopping ❤️`;
 
     /*
       CHANGE THIS NUMBER TO YOUR WHATSAPP NUMBER.
@@ -101,7 +101,7 @@ export default function CheckoutPage() {
       }}
     >
       <h1 style={{ textAlign: "center" }}>
-        Sindhu Shopping
+        Bee Girl Shopping
       </h1>
 
       <p style={{ textAlign: "center" }}>
