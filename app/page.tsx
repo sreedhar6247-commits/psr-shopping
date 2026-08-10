@@ -194,7 +194,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("sindhu-shopping-cart");
+      const saved = localStorage.getItem("Bee Girl-shopping-cart");
 
       if (saved) {
         setCart(JSON.parse(saved));
@@ -207,7 +207,7 @@ export default function Home() {
   useEffect(() => {
     try {
       localStorage.setItem(
-        "sindhu-shopping-cart",
+        "Bee Girl-shopping-cart",
         JSON.stringify(cart)
       );
     } catch {}
@@ -452,7 +452,7 @@ export default function Home() {
               <div className="text-8xl">👗</div>
 
               <h3 className="mt-5 text-3xl font-black text-pink-700">
-                Sindhu Shopping
+                Bee Girl Shopping
               </h3>
 
               <p className="mt-2 text-slate-600">
@@ -892,7 +892,7 @@ export default function Home() {
             </h2>
 
             <p className="mt-3 text-slate-600">
-              Thank you for shopping with Sindhu Shopping.
+              Thank you for shopping with Bee Girl Shopping.
               Your order has been received successfully.
             </p>
 
