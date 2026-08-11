@@ -1,64 +1,55 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const amount = Number(body.amount);
 
-    if (!amount || amount <= 0) {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = body;
+
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!secret) {
       return NextResponse.json(
-        { error: "Invalid payment amount" },
-        { status: 400 }
-      );
-    }
-
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-    if (!keyId || !keySecret) {
-      return NextResponse.json(
-        { error: "Razorpay environment variables are missing" },
+        { error: "Razorpay secret is missing" },
         { status: 500 }
       );
     }
 
-    const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+    const generatedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(
+        `${razorpay_order_id}|${razorpay_payment_id}`
+      )
+      .digest("hex");
 
-    const response = await fetch("https://api.razorpay.com/v1/orders", {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${auth}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        amount: Math.round(amount * 100),
-        currency: "INR",
-        receipt: `bee-girl-${Date.now()}`,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (generatedSignature !== razorpay_signature) {
       return NextResponse.json(
         {
-          error: data?.error?.description || "Unable to create Razorpay order",
+          success: false,
+          error: "Invalid payment signature",
         },
-        { status: response.status }
+        { status: 400 }
       );
     }
 
     return NextResponse.json({
-      orderId: data.id,
-      amount: data.amount,
-      currency: data.currency,
-      keyId,
+      success: true,
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
     });
   } catch (error) {
-    console.error("Razorpay error:", error);
+    console.error("Payment verification error:", error);
 
     return NextResponse.json(
-      { error: "Payment server error" },
+      {
+        success: false,
+        error: "Payment verification failed",
+      },
       { status: 500 }
     );
   }
