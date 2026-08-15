@@ -32,10 +32,11 @@ export default function CheckoutPage() {
 
     if (!document.getElementById("razorpay-script")) {
       const script = document.createElement("script");
+
       script.id = "razorpay-script";
-      script.src =
-        "https://checkout.razorpay.com/v1/checkout.js";
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.async = true;
+
       document.body.appendChild(script);
     }
   }, []);
@@ -63,7 +64,9 @@ export default function CheckoutPage() {
 
   function increase(index: number) {
     const updated = [...cart];
+
     updated[index].quantity += 1;
+
     saveCart(updated);
   }
 
@@ -81,13 +84,14 @@ export default function CheckoutPage() {
 
   function removeItem(index: number) {
     const updated = [...cart];
+
     updated.splice(index, 1);
+
     saveCart(updated);
   }
 
   const total = cart.reduce(
-    (sum, item) =>
-      sum + Number(item.price) * Number(item.quantity),
+    (sum, item) => sum + Number(item.price) * item.quantity,
     0
   );
 
@@ -99,7 +103,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!phone.trim() || !/^[6-9]\\d{9}$/.test(phone.trim())) {
+    if (!phone.trim() || !/^[6-9]\d{9}$/.test(phone.trim())) {
       setMessage("Please enter a valid 10-digit phone number.");
       return;
     }
@@ -114,7 +118,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!/^\\d{6}$/.test(pincode.trim())) {
+    if (!/^\d{6}$/.test(pincode.trim())) {
       setMessage("Please enter a valid 6-digit pincode.");
       return;
     }
@@ -178,37 +182,29 @@ export default function CheckoutPage() {
 
         handler: async function (payment: any) {
           try {
-            const verify = await fetch(
-              "/api/payment/verify",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  razorpay_order_id:
-                    payment.razorpay_order_id,
-                  razorpay_payment_id:
-                    payment.razorpay_payment_id,
-                  razorpay_signature:
-                    payment.razorpay_signature,
-                }),
-              }
-            );
+            const verify = await fetch("/api/payment/verify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                razorpay_order_id: payment.razorpay_order_id,
+                razorpay_payment_id: payment.razorpay_payment_id,
+                razorpay_signature: payment.razorpay_signature,
+              }),
+            });
 
-            const result = await verify.json();
+            const verifyData = await verify.json();
 
-            if (!verify.ok || !result.success) {
+            if (!verify.ok) {
               throw new Error(
-                result.error || "Payment verification failed."
+                verifyData?.error || "Payment verification failed."
               );
             }
 
-            localStorage.removeItem(
-              "bee-girl-shopping-cart"
-            );
-
             setCart([]);
+
+            localStorage.removeItem("bee-girl-shopping-cart");
 
             alert(
               "✅ Payment successful! Your order has been placed."
@@ -217,8 +213,9 @@ export default function CheckoutPage() {
             window.location.href = "/";
           } catch (error: any) {
             setMessage(
-              error.message || "Payment verification failed."
+              error?.message || "Payment verification failed."
             );
+            setLoading(false);
           }
         },
 
@@ -231,21 +228,20 @@ export default function CheckoutPage() {
 
       const razorpay = new window.Razorpay(options);
 
-      razorpay.on(
-        "payment.failed",
-        function () {
-          setMessage(
-            "Payment failed. Please try another payment method."
-          );
-          setLoading(false);
-        }
-      );
+      razorpay.on("payment.failed", function () {
+        setMessage(
+          "Payment failed. Please try another payment method."
+        );
+
+        setLoading(false);
+      });
 
       razorpay.open();
     } catch (error: any) {
       setMessage(
-        error.message || "Unable to start payment."
+        error?.message || "Unable to start payment."
       );
+
       setLoading(false);
     }
   }
@@ -273,6 +269,10 @@ export default function CheckoutPage() {
           align-items: center;
         }
 
+        .header h2 {
+          margin: 0;
+        }
+
         .back {
           background: white;
           color: #7137c8;
@@ -289,12 +289,16 @@ export default function CheckoutPage() {
           padding: 0 15px;
         }
 
+        .container h1 {
+          margin-bottom: 20px;
+        }
+
         .box {
           background: white;
           padding: 20px;
           border-radius: 22px;
           margin-bottom: 20px;
-          box-shadow: 0 5px 20px rgba(0,0,0,.08);
+          box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
         }
 
         .item {
@@ -314,35 +318,52 @@ export default function CheckoutPage() {
           flex: 1;
         }
 
+        .details h3 {
+          margin: 0 0 8px;
+        }
+
+        .details div {
+          margin: 5px 0;
+        }
+
         .price {
           color: #7137c8;
           font-weight: bold;
+          font-size: 18px;
         }
 
         .controls {
           display: flex;
           align-items: center;
           gap: 8px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
         }
 
         .qty {
-          width: 35px;
-          height: 35px;
+          width: 36px;
+          height: 36px;
           border: 0;
-          border-radius: 50%;
-          background: #eee5ff;
+          border-radius: 10px;
+          background: #f0eaff;
           color: #7137c8;
-          font-size: 18px;
+          font-size: 20px;
           cursor: pointer;
         }
 
         .remove {
           border: 0;
-          background: #ffe5e5;
+          background: #fff0f0;
           color: #d00000;
-          padding: 8px 12px;
-          border-radius: 15px;
+          padding: 9px 12px;
+          border-radius: 10px;
           cursor: pointer;
+        }
+
+        label {
+          display: block;
+          margin-top: 12px;
+          font-weight: bold;
         }
 
         input,
@@ -354,6 +375,7 @@ export default function CheckoutPage() {
           border: 1px solid #ddd;
           border-radius: 12px;
           font-size: 15px;
+          font-family: Arial, sans-serif;
         }
 
         textarea {
@@ -374,7 +396,8 @@ export default function CheckoutPage() {
         }
 
         .pay:disabled {
-          opacity: .6;
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         .total {
@@ -382,6 +405,7 @@ export default function CheckoutPage() {
           font-weight: bold;
           color: #7137c8;
           text-align: right;
+          margin-top: 20px;
         }
 
         .error {
@@ -397,7 +421,7 @@ export default function CheckoutPage() {
           padding: 60px 20px;
         }
 
-        @media(max-width:600px) {
+        @media (max-width: 600px) {
           .item {
             align-items: flex-start;
             flex-direction: column;
@@ -406,6 +430,14 @@ export default function CheckoutPage() {
           .controls {
             width: 100%;
             justify-content: space-between;
+          }
+
+          .header {
+            gap: 10px;
+          }
+
+          .header h2 {
+            font-size: 18px;
           }
         }
       `}</style>
@@ -429,6 +461,7 @@ export default function CheckoutPage() {
         {cart.length === 0 ? (
           <div className="box empty">
             <h2>Your cart is empty</h2>
+
             <button
               className="pay"
               onClick={() => {
@@ -458,7 +491,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="price">
-                      ₹{item.price}
+                      ₹{Number(item.price).toLocaleString("en-IN")}
                     </div>
                   </div>
 
@@ -466,6 +499,7 @@ export default function CheckoutPage() {
                     <button
                       className="qty"
                       onClick={() => decrease(index)}
+                      aria-label="Decrease quantity"
                     >
                       −
                     </button>
@@ -475,6 +509,7 @@ export default function CheckoutPage() {
                     <button
                       className="qty"
                       onClick={() => increase(index)}
+                      aria-label="Increase quantity"
                     >
                       +
                     </button>
@@ -487,10 +522,10 @@ export default function CheckoutPage() {
                     </button>
                   </div>
                 </div>
-              )}
+              ))}
 
               <div className="total">
-                Total: ₹{total}
+                Total: ₹{total.toLocaleString("en-IN")}
               </div>
             </div>
 
@@ -498,46 +533,80 @@ export default function CheckoutPage() {
               <h2>Delivery Details</h2>
 
               {message && (
-                <div className="error">{message}</div>
+                <div className="error">
+                  {message}
+                </div>
               )}
 
-              <label>Name</label>
+              <label htmlFor="name">
+                Name
+              </label>
+
               <input
+                id="name"
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
+                placeholder="Enter your full name"
               />
 
-              <label>Phone Number</label>
+              <label htmlFor="phone">
+                Phone Number
+              </label>
+
               <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="10-digit mobile number"
+                id="phone"
+                type="tel"
+                inputMode="numeric"
                 maxLength={10}
+                value={phone}
+                onChange={(e) =>
+                  setPhone(
+                    e.target.value.replace(/\D/g, "").slice(0, 10)
+                  )
+                }
+                placeholder="10-digit mobile number"
               />
 
-              <label>Delivery Address</label>
+              <label htmlFor="address">
+                Delivery Address
+              </label>
+
               <textarea
+                id="address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="House number, street, area"
+                placeholder="Enter your complete delivery address"
               />
 
-              <label>City</label>
+              <label htmlFor="city">
+                City
+              </label>
+
               <input
+                id="city"
+                type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Anantapur"
+                placeholder="Enter your city"
               />
 
-              <label>Pincode</label>
+              <label htmlFor="pincode">
+                Pincode
+              </label>
+
               <input
+                id="pincode"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
                 value={pincode}
                 onChange={(e) =>
-                  setPincode(e.target.value)
+                  setPincode(
+                    e.target.value.replace(/\D/g, "").slice(0, 6)
+                  )
                 }
                 placeholder="6-digit pincode"
-                maxLength={6}
               />
 
               <button
@@ -546,8 +615,8 @@ export default function CheckoutPage() {
                 disabled={loading}
               >
                 {loading
-                  ? "Opening Payment..."
-                  : `💳 Pay ₹${total}`}
+                  ? "Processing..."
+                  : `Pay ₹${total.toLocaleString("en-IN")}`}
               </button>
             </div>
           </>
@@ -555,4 +624,4 @@ export default function CheckoutPage() {
       </div>
     </main>
   );
-                }
+}
