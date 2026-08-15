@@ -3,33 +3,52 @@
 import { useState } from "react";
 
 const products = [
-  { name: "Elegant Cotton Kurti", price: 799, image: "/kurti-1.jpg" },
-  { name: "Designer Anarkali Kurti", price: 1199, image: "/kurti-2.jpg" },
-  { name: "Beautiful Saree", price: 999, image: "/kurti-3.jpg" },
-  { name: "Stylish Women Kurti", price: 899, image: "/kurti-4.jpg" },
+  {
+    name: "Elegant Cotton Kurti",
+    price: 799,
+    image:
+      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    name: "Designer Anarkali Kurti",
+    price: 1199,
+    image:
+      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    name: "Beautiful Saree",
+    price: 999,
+    image:
+      "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    name: "Stylish Women Kurti",
+    price: 899,
+    image:
+      "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=800&q=80",
+  },
 ];
 
 export default function Home() {
   const [wishlist, setWishlist] = useState<string[]>([]);
 
-  const toggleWishlist = (name: string) => {
+  function toggleWishlist(name: string) {
     setWishlist((old) =>
       old.includes(name)
         ? old.filter((x) => x !== name)
         : [...old, name]
     );
-  };
+  }
 
   return (
     <main
       style={{
         minHeight: "100vh",
         background: "linear-gradient(135deg,#fff0f7,#f5efff)",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: "Arial,sans-serif",
         color: "#17172b",
       }}
     >
-      {/* HEADER */}
       <header
         style={{
           padding: "15px 5%",
@@ -37,10 +56,10 @@ export default function Home() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          boxShadow: "0 2px 12px #ddd",
           position: "sticky",
           top: 0,
           zIndex: 10,
-          boxShadow: "0 2px 12px #ddd",
         }}
       >
         <div>
@@ -54,7 +73,7 @@ export default function Home() {
           href="/checkout"
           style={{
             background: "#e60073",
-            color: "#fff",
+            color: "white",
             padding: "11px 18px",
             borderRadius: 25,
             textDecoration: "none",
@@ -65,13 +84,7 @@ export default function Home() {
         </a>
       </header>
 
-      {/* HERO */}
-      <section
-        style={{
-          padding: "55px 6%",
-          textAlign: "center",
-        }}
-      >
+      <section style={{ padding: "55px 6%", textAlign: "center" }}>
         <p style={{ color: "#e60073", fontWeight: "bold" }}>
           ✨ NEW COLLECTION ✨
         </p>
@@ -100,7 +113,7 @@ export default function Home() {
             display: "inline-block",
             marginTop: 20,
             background: "#e60073",
-            color: "#fff",
+            color: "white",
             padding: "14px 28px",
             borderRadius: 30,
             textDecoration: "none",
@@ -111,12 +124,11 @@ export default function Home() {
         </a>
       </section>
 
-      {/* LOCATION + SUPPORT */}
       <section
         style={{
           margin: "10px 5%",
           padding: 25,
-          background: "#fff",
+          background: "white",
           borderRadius: 20,
           textAlign: "center",
           boxShadow: "0 4px 20px #ddd",
@@ -128,11 +140,12 @@ export default function Home() {
         <a
           href="https://wa.me/919999999999"
           target="_blank"
+          rel="noreferrer"
           style={{
             display: "inline-block",
             marginTop: 10,
             background: "#25D366",
-            color: "#fff",
+            color: "white",
             padding: "13px 25px",
             borderRadius: 25,
             textDecoration: "none",
@@ -143,15 +156,18 @@ export default function Home() {
         </a>
       </section>
 
-      {/* PRODUCTS */}
       <section id="collection" style={{ padding: "30px 5%" }}>
-        <h2 style={{ color: "#e60073" }}>OUR COLLECTION</h2>
+        <p style={{ color: "#e60073", fontWeight: "bold" }}>
+          OUR COLLECTION
+        </p>
+
         <h1>Women's Fashion</h1>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+            gridTemplateColumns:
+              "repeat(auto-fit,minmax(220px,1fr))",
             gap: 20,
           }}
         >
@@ -159,7 +175,7 @@ export default function Home() {
             <div
               key={p.name}
               style={{
-                background: "#fff",
+                background: "white",
                 borderRadius: 18,
                 overflow: "hidden",
                 boxShadow: "0 4px 15px #ddd",
@@ -170,8 +186,9 @@ export default function Home() {
                 alt={p.name}
                 style={{
                   width: "100%",
-                  height: 280,
+                  height: 300,
                   objectFit: "cover",
+                  display: "block",
                 }}
               />
 
@@ -189,11 +206,15 @@ export default function Home() {
                   {wishlist.includes(p.name) ? "❤️" : "♡"}
                 </button>
 
-                <small style={{ color: "#e60073" }}>Fashion</small>
+                <small style={{ color: "#e60073" }}>
+                  Fashion
+                </small>
 
                 <h3>{p.name}</h3>
 
-                <h2 style={{ color: "#e60073" }}>₹{p.price}</h2>
+                <h2 style={{ color: "#e60073" }}>
+                  ₹{p.price}
+                </h2>
 
                 <a
                   href="/checkout"
@@ -201,7 +222,7 @@ export default function Home() {
                     display: "block",
                     textAlign: "center",
                     background: "#e60073",
-                    color: "#fff",
+                    color: "white",
                     padding: 12,
                     borderRadius: 25,
                     textDecoration: "none",
@@ -216,13 +237,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer
         style={{
           marginTop: 40,
           padding: 30,
           background: "#17172b",
-          color: "#fff",
+          color: "white",
           textAlign: "center",
         }}
       >
