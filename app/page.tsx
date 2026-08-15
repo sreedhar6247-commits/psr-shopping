@@ -8,9 +8,9 @@ type Product = {
   price: number;
   category: string;
   description: string;
-  image: string;
   sizes: string[];
   colors: string[];
+  image: string;
 };
 
 type CartItem = Product & {
@@ -19,6 +19,22 @@ type CartItem = Product & {
   quantity: number;
 };
 
+const categories = [
+  "All",
+  "Kurtis",
+  "Sarees",
+  "Night Wear",
+  "Casual Wear",
+  "Dresses",
+  "Tops",
+  "Palazzo",
+  "Salwar Suits",
+  "Ethnic Wear",
+  "Party Wear",
+];
+
+const defaultSizes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+
 const products: Product[] = [
   {
     id: 1,
@@ -26,9 +42,9 @@ const products: Product[] = [
     price: 799,
     category: "Kurtis",
     description: "Comfortable cotton kurti for everyday wear.",
-    image: "/products/kurti-1.jpg",
     sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["Blue", "Pink", "Black", "White"],
+    colors: ["Blue", "Pink", "Black", "Red"],
+    image: "/products/kurti-1.jpg",
   },
   {
     id: 2,
@@ -36,9 +52,9 @@ const products: Product[] = [
     price: 1199,
     category: "Kurtis",
     description: "Beautiful Anarkali kurti for festive occasions.",
+    sizes: ["S", "M", "L", "XL"],
+    colors: ["Pink", "Blue", "Green", "Maroon"],
     image: "/products/kurti-2.jpg",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["Pink", "Blue", "Red", "Green"],
   },
   {
     id: 3,
@@ -46,9 +62,9 @@ const products: Product[] = [
     price: 899,
     category: "Kurtis",
     description: "Trendy printed kurti with a comfortable fit.",
-    image: "/products/kurti-3.jpg",
     sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["Blue", "Yellow", "Pink", "Black"],
+    colors: ["Yellow", "Blue", "Pink", "White"],
+    image: "/products/kurti-3.jpg",
   },
   {
     id: 4,
@@ -56,199 +72,334 @@ const products: Product[] = [
     price: 1499,
     category: "Kurtis",
     description: "Premium embroidered kurti for special occasions.",
+    sizes: ["S", "M", "L", "XL"],
+    colors: ["Black", "Wine", "Royal Blue", "Cream"],
     image: "/products/kurti-4.jpg",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["Black", "Maroon", "Blue", "Green"],
   },
   {
     id: 5,
-    name: "Floral Daily Wear Kurti",
-    price: 699,
-    category: "Casual Wear",
-    description: "Soft and stylish floral kurti for daily wear.",
-    image: "/products/kurti-1.jpg",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["Pink", "Blue", "White", "Yellow"],
+    name: "Royal Banarasi Silk Saree",
+    price: 2499,
+    category: "Sarees",
+    description: "Elegant traditional silk saree with a rich festive look.",
+    sizes: ["Free Size"],
+    colors: ["Red", "Purple", "Green", "Maroon"],
+    image:
+      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=85",
   },
   {
     id: 6,
-    name: "Party Wear Kurti",
-    price: 1399,
-    category: "Party Wear",
-    description: "Elegant party wear outfit for special occasions.",
-    image: "/products/kurti-2.jpg",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["Black", "Red", "Wine", "Blue"],
+    name: "Soft Cotton Daily Wear Saree",
+    price: 999,
+    category: "Sarees",
+    description: "Lightweight cotton saree for comfortable everyday wear.",
+    sizes: ["Free Size"],
+    colors: ["Blue", "Pink", "Green", "Yellow"],
+    image:
+      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?auto=format&fit=crop&w=900&q=85",
   },
   {
     id: 7,
-    name: "Designer Silk Saree",
+    name: "Designer Party Wear Saree",
     price: 1899,
     category: "Sarees",
-    description: "Elegant saree with a beautiful designer finish.",
-    image: "/products/kurti-3.jpg",
+    description: "Stylish saree designed for parties and celebrations.",
     sizes: ["Free Size"],
-    colors: ["Red", "Blue", "Green", "Pink"],
+    colors: ["Black", "Wine", "Navy Blue", "Pink"],
+    image:
+      "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=900&q=85",
   },
   {
     id: 8,
-    name: "Soft Cotton Saree",
-    price: 999,
-    category: "Sarees",
-    description: "Comfortable cotton saree for everyday use.",
-    image: "/products/kurti-4.jpg",
-    sizes: ["Free Size"],
-    colors: ["Blue", "Yellow", "Pink", "Green"],
+    name: "Comfort Cotton Night Suit",
+    price: 699,
+    category: "Night Wear",
+    description: "Soft and comfortable night suit for a relaxed sleep.",
+    sizes: defaultSizes,
+    colors: ["Pink", "Blue", "Lavender", "Grey"],
+    image:
+      "https://images.unsplash.com/photo-1596755389378-c31d21fd1273?auto=format&fit=crop&w=900&q=85",
   },
   {
     id: 9,
-    name: "Printed Casual Dress",
-    price: 1099,
-    category: "Dresses",
-    description: "Stylish printed dress for casual outings.",
-    image: "/products/kurti-1.jpg",
+    name: "Floral Night Dress",
+    price: 599,
+    category: "Night Wear",
+    description: "Soft floral night dress with an easy comfortable fit.",
     sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["Pink", "Blue", "Black", "White"],
+    colors: ["Pink", "Blue", "Purple", "White"],
+    image:
+      "https://images.unsplash.com/photo-1583846783214-7229a91b20ed?auto=format&fit=crop&w=900&q=85",
   },
   {
     id: 10,
-    name: "Western Casual Dress",
-    price: 1299,
-    category: "Dresses",
-    description: "Modern comfortable dress for everyday fashion.",
-    image: "/products/kurti-2.jpg",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["Black", "Blue", "Red", "White"],
+    name: "Women's Casual Shirt",
+    price: 749,
+    category: "Casual Wear",
+    description: "Smart casual shirt for daily outings and weekends.",
+    sizes: defaultSizes,
+    colors: ["White", "Black", "Blue", "Green"],
+    image:
+      "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=900&q=85",
   },
   {
     id: 11,
-    name: "Comfort Night Suit",
-    price: 799,
-    category: "Night Wear",
-    description: "Soft and comfortable women's night wear.",
-    image: "/products/kurti-3.jpg",
-    sizes: ["M", "L", "XL", "XXL"],
-    colors: ["Pink", "Blue", "Purple", "Grey"],
+    name: "Relaxed Casual Top",
+    price: 649,
+    category: "Casual Wear",
+    description: "Easy everyday top with a modern relaxed style.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: ["Pink", "White", "Black", "Yellow"],
+    image:
+      "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=900&q=85",
   },
   {
     id: 12,
-    name: "Premium Night Dress",
-    price: 899,
-    category: "Night Wear",
-    description: "Comfortable premium night dress.",
-    image: "/products/kurti-4.jpg",
+    name: "Elegant Floral Maxi Dress",
+    price: 1399,
+    category: "Dresses",
+    description:
+      "Flowy floral maxi dress for casual and semi-formal occasions.",
     sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["Pink", "Black", "Blue", "Purple"],
+    colors: ["Pink", "Blue", "Green", "Black"],
+    image:
+      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=85",
   },
   {
     id: 13,
-    name: "Casual Women's Top",
-    price: 599,
-    category: "Casual Wear",
-    description: "Stylish casual top for everyday fashion.",
-    image: "/products/kurti-1.jpg",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["White", "Black", "Pink", "Blue"],
+    name: "Classic Midi Dress",
+    price: 1299,
+    category: "Dresses",
+    description: "Modern midi dress with a clean, elegant silhouette.",
+    sizes: ["S", "M", "L", "XL"],
+    colors: ["Black", "Red", "Blue", "White"],
+    image:
+      "https://images.unsplash.com/photo-1539008835657-9e8e9680c956?auto=format&fit=crop&w=900&q=85",
   },
   {
     id: 14,
-    name: "Party Wear Gown",
+    name: "Premium Women's Top",
+    price: 699,
+    category: "Tops",
+    description: "Stylish top for everyday fashion and casual occasions.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: ["Pink", "Black", "White", "Green"],
+    image:
+      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 15,
+    name: "Comfort Palazzo Pants",
+    price: 799,
+    category: "Palazzo",
+    description: "Wide-leg palazzo pants designed for comfort and style.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: ["Black", "Cream", "Navy Blue", "Maroon"],
+    image:
+      "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 16,
+    name: "Festive Salwar Suit Set",
+    price: 1699,
+    category: "Salwar Suits",
+    description:
+      "Elegant salwar suit set for festivals and family occasions.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: ["Pink", "Green", "Blue", "Maroon"],
+    image:
+      "https://images.unsplash.com/photo-1583391733981-849840f6f3d5?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 17,
+    name: "Classic Embroidered Ethnic Set",
+    price: 1799,
+    category: "Ethnic Wear",
+    description:
+      "Graceful ethnic outfit with an elegant embroidered finish.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: ["Cream", "Pink", "Green", "Royal Blue"],
+    image:
+      "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 18,
+    name: "Glamour Party Wear Dress",
     price: 1999,
     category: "Party Wear",
-    description: "Beautiful party gown for celebrations.",
-    image: "/products/kurti-2.jpg",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    colors: ["Red", "Black", "Blue", "Wine"],
+    description:
+      "Statement party dress for celebrations and evening events.",
+    sizes: ["S", "M", "L", "XL"],
+    colors: ["Black", "Red", "Wine", "Navy Blue"],
+    image:
+      "https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=900&q=85",
   },
 ];
 
-const categories = [
-  "All",
-  "Kurtis",
-  "Sarees",
-  "Casual Wear",
-  "Night Wear",
-  "Party Wear",
-  "Dresses",
-];
+const colorClass: Record<string, string> = {
+  Black: "bg-black",
+  White: "bg-white",
+  Red: "bg-red-500",
+  Blue: "bg-blue-600",
+  "Royal Blue": "bg-blue-800",
+  Pink: "bg-pink-400",
+  Green: "bg-green-600",
+  Yellow: "bg-yellow-400",
+  Purple: "bg-purple-500",
+  Lavender: "bg-purple-300",
+  Maroon: "bg-red-900",
+  Wine: "bg-rose-900",
+  "Navy Blue": "bg-slate-900",
+  Cream: "bg-amber-100",
+  Grey: "bg-gray-500",
+};
 
 export default function Home() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [productOpen, setProductOpen] = useState<Product | null>(null);
 
-  const [selectedSize, setSelectedSize] = useState("M");
-  const [selectedColor, setSelectedColor] = useState("");
-
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
 
+  const [selectedSize, setSelectedSize] = useState("M");
+  const [selectedColor, setSelectedColor] = useState("");
+
+  const [message, setMessage] = useState("");
+
   const [checkout, setCheckout] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
+  const [address, setAddress] = useState(
+    "Sai Nagar, 7th Cross, Anantapur"
+  );
+  const [city, setCity] = useState("Anantapur");
   const [pincode, setPincode] = useState("");
+
+  const [wishlist, setWishlist] = useState<number[]>([]);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+
+  /*
+   * WhatsApp support.
+   * This opens WhatsApp with a ready-made message.
+   * When you have your shop WhatsApp number, you can change the
+   * support URL to:
+   * https://wa.me/91XXXXXXXXXX
+   */
+  const whatsappSupport =
+    "https://wa.me/?text=" +
+    encodeURIComponent(
+      "Hello Bee Girl Shopping, I need support regarding my order."
+    );
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("Bee Girl-shopping-cart");
+      const savedCart = localStorage.getItem("bee-girl-shopping-cart");
 
-      if (saved) {
-        setCart(JSON.parse(saved));
+      if (savedCart) {
+        setCart(JSON.parse(savedCart));
+      }
+
+      const savedWishlist = localStorage.getItem(
+        "bee-girl-shopping-wishlist"
+      );
+
+      if (savedWishlist) {
+        setWishlist(JSON.parse(savedWishlist));
       }
     } catch {
       setCart([]);
+      setWishlist([]);
     }
   }, []);
 
   useEffect(() => {
     try {
       localStorage.setItem(
-        "Bee Girl-shopping-cart",
+        "bee-girl-shopping-cart",
         JSON.stringify(cart)
       );
     } catch {}
   }, [cart]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "bee-girl-shopping-wishlist",
+        JSON.stringify(wishlist)
+      );
+    } catch {}
+  }, [wishlist]);
+
   const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
     return products.filter((product) => {
       const matchesCategory =
         category === "All" || product.category === category;
 
-      const text =
-        `${product.name} ${product.category} ${product.description}`.toLowerCase();
-
       const matchesSearch =
-        search.trim() === "" ||
-        text.includes(search.toLowerCase());
+        !query ||
+        product.name.toLowerCase().includes(query) ||
+        product.category.toLowerCase().includes(query) ||
+        product.description.toLowerCase().includes(query);
 
       return matchesCategory && matchesSearch;
     });
   }, [category, search]);
 
-  const cartCount = cart.reduce(
-    (total, item) => total + item.quantity,
+  const wishlistProducts = products.filter((product) =>
+    wishlist.includes(product.id)
+  );
+
+  const totalItems = cart.reduce(
+    (sum, item) => sum + item.quantity,
     0
   );
 
-  const cartTotal = cart.reduce(
-    (total, item) => total + item.price * item.quantity,
+  const totalPrice = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  function showMessage(text: string) {
+    setMessage(text);
+
+    setTimeout(() => {
+      setMessage("");
+    }, 2200);
+  }
 
   function openProduct(product: Product) {
     setProductOpen(product);
-    setSelectedSize(product.sizes[0]);
+
+    setSelectedSize(
+      product.sizes.includes("M")
+        ? "M"
+        : product.sizes[0]
+    );
+
     setSelectedColor(product.colors[0]);
   }
 
-  function addToCart(product: Product) {
-    const size = selectedSize || product.sizes[0];
-    const color = selectedColor || product.colors[0];
+  function toggleWishlist(productId: number) {
+    setWishlist((current) => {
+      if (current.includes(productId)) {
+        showMessage("Removed from Wishlist ❤️");
+        return current.filter((id) => id !== productId);
+      }
 
+      showMessage("Added to Wishlist ❤️");
+      return [...current, productId];
+    });
+  }
+
+  function addToCart(
+    product: Product,
+    size: string,
+    color: string
+  ) {
     setCart((current) => {
       const existing = current.find(
         (item) =>
@@ -281,43 +432,26 @@ export default function Home() {
       ];
     });
 
+    showMessage(`${product.name} added to cart`);
+
     setProductOpen(null);
     setCartOpen(true);
   }
 
-  function increaseQuantity(
-    id: number,
-    size: string,
-    color: string
-  ) {
-    setCart((current) =>
-      current.map((item) =>
-        item.id === id &&
-        item.size === size &&
-        item.color === color
-          ? {
-              ...item,
-              quantity: item.quantity + 1,
-            }
-          : item
-      )
-    );
-  }
-
-  function decreaseQuantity(
-    id: number,
-    size: string,
-    color: string
+  function updateQuantity(
+    index: number,
+    change: number
   ) {
     setCart((current) =>
       current
-        .map((item) =>
-          item.id === id &&
-          item.size === size &&
-          item.color === color
+        .map((item, i) =>
+          i === index
             ? {
                 ...item,
-                quantity: item.quantity - 1,
+                quantity: Math.max(
+                  0,
+                  item.quantity + change
+                ),
               }
             : item
         )
@@ -325,31 +459,9 @@ export default function Home() {
     );
   }
 
-  function removeItem(
-    id: number,
-    size: string,
-    color: string
-  ) {
-    setCart((current) =>
-      current.filter(
-        (item) =>
-          !(
-            item.id === id &&
-            item.size === size &&
-            item.color === color
-          )
-      )
-    );
-  }
+  function submitOrder(e: React.FormEvent) {
+    e.preventDefault();
 
-  function startCheckout() {
-    if (cart.length === 0) return;
-
-    setCartOpen(false);
-    setCheckout(true);
-  }
-
-  function placeOrder() {
     if (
       !name.trim() ||
       !phone.trim() ||
@@ -357,578 +469,224 @@ export default function Home() {
       !city.trim() ||
       !pincode.trim()
     ) {
-      alert("Please fill all delivery details.");
+      showMessage("Please fill all delivery details");
       return;
     }
 
-    if (phone.trim().length < 10) {
-      alert("Please enter a valid phone number.");
+    if (cart.length === 0) {
+      showMessage("Your cart is empty");
       return;
     }
 
-    if (pincode.trim().length !== 6) {
-      alert("Please enter a valid 6 digit pincode.");
-      return;
-    }
+    const orderText = cart
+      .map(
+        (item) =>
+          `${item.name} | Size: ${item.size} | Colour: ${item.color} | Qty: ${item.quantity}`
+      )
+      .join("\n");
 
-    setCheckout(false);
-    setOrderPlaced(true);
-    setCart([]);
+    const whatsappText =
+      `Hello Bee Girl Shopping,\n\n` +
+      `I want to place an order:\n\n` +
+      `${orderText}\n\n` +
+      `Total: ₹${totalPrice.toLocaleString("en-IN")}\n\n` +
+      `Customer: ${name}\n` +
+      `Phone: ${phone}\n` +
+      `Address: ${address}, ${city} - ${pincode}`;
+
+    const url =
+      `https://wa.me/?text=` +
+      encodeURIComponent(whatsappText);
+
+    window.open(url, "_blank");
+
+    showMessage(
+      "Order details prepared for WhatsApp"
+    );
   }
 
   return (
-    <main className="min-h-screen bg-[#fff5fb] text-slate-900">
+    <main
+      className="min-h-screen text-slate-900"
+      style={{
+        fontFamily:
+          "Trebuchet MS, Arial, sans-serif",
+        background:
+          "linear-gradient(180deg,#fff7fc 0%,#fdf4ff 45%,#ffffff 100%)",
+      }}
+    >
+      {/* TOP ANNOUNCEMENT */}
+      <div className="bg-gradient-to-r from-violet-700 via-fuchsia-600 to-pink-600 px-4 py-2 text-center text-xs font-bold text-white sm:text-sm">
+        ✨ Welcome to Bee Girl Shopping ✨
+        <span className="mx-2">•</span>
+        Fashion • Style • Comfort
+      </div>
+
       {/* HEADER */}
-      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4">
-          <div className="min-w-fit">
-            <h1 className="text-xl font-extrabold text-pink-600 sm:text-2xl">
-              Sindhu Shopping
-            </h1>
+      <header className="sticky top-0 z-40 border-b border-fuchsia-100 bg-white/95 shadow-sm backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 py-3 sm:px-4">
+          <button
+            type="button"
+            onClick={() => {
+              setCategory("All");
+              setSearch("");
+              window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+              });
+            }}
+            className="min-w-fit text-left"
+          >
+            <div className="text-xl font-black tracking-tight text-fuchsia-600 sm:text-2xl">
+              Bee Girl Shopping
+            </div>
 
-            <p className="text-xs text-slate-500">
+            <div className="text-[10px] font-semibold text-gray-500 sm:text-xs">
               Women&apos;s Fashion
-            </p>
-          </div>
+            </div>
+          </button>
 
-          <div className="flex-1">
+          <div className="hidden flex-1 md:block">
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search dresses, sarees, kurtis..."
-              className="w-full rounded-full border border-slate-300 px-5 py-3 text-sm outline-none focus:border-pink-500"
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder="Search sarees, kurtis, dresses..."
+              className="w-full rounded-full border border-gray-200 bg-gray-50 px-5 py-3 text-sm outline-none transition focus:border-fuchsia-400 focus:bg-white"
             />
           </div>
 
+          {/* WISHLIST */}
           <button
-            onClick={() => setCartOpen(true)}
-            className="rounded-full bg-pink-600 px-4 py-3 font-bold text-white hover:bg-pink-700"
+            type="button"
+            onClick={() =>
+              setWishlistOpen(true)
+            }
+            className="relative rounded-full border border-fuchsia-200 bg-white px-3 py-2 text-lg shadow-sm transition hover:bg-fuchsia-50 sm:px-4"
           >
-            🛒 Cart
-            {cartCount > 0 && (
-              <span className="ml-2 rounded-full bg-white px-2 py-1 text-xs text-pink-600">
-                {cartCount}
+            ❤️
+
+            {wishlist.length > 0 && (
+              <span className="absolute -right-1 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                {wishlist.length}
               </span>
             )}
           </button>
+
+          {/* CART */}
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            className="rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:scale-105 sm:px-5"
+          >
+            🛒 Cart{" "}
+            {totalItems > 0
+              ? `(${totalItems})`
+              : ""}
+          </button>
+        </div>
+
+        {/* MOBILE SEARCH */}
+        <div className="px-3 pb-3 md:hidden">
+          <input
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+            placeholder="Search products..."
+            className="w-full rounded-full border border-gray-200 bg-gray-50 px-5 py-3 text-sm outline-none focus:border-fuchsia-400"
+          />
+        </div>
+
+        {/* CATEGORIES */}
+        <div className="overflow-x-auto border-t border-gray-100 bg-white">
+          <div className="mx-auto flex max-w-7xl gap-2 px-3 py-3">
+            {categories.map((item) => (
+              <button
+                type="button"
+                key={item}
+                onClick={() =>
+                  setCategory(item)
+                }
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition sm:text-sm ${
+                  category === item
+                    ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow"
+                    : "bg-fuchsia-50 text-gray-700 hover:bg-fuchsia-100"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="bg-gradient-to-r from-pink-100 via-white to-purple-100">
-        <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-14 md:grid-cols-2">
-          <div>
-            <p className="mb-3 font-bold uppercase tracking-widest text-pink-600">
-              New Collection
-            </p>
+      {/* MESSAGE */}
+      {message && (
+        <div className="fixed left-1/2 top-28 z-[100] w-[90%] max-w-md -translate-x-1/2 rounded-2xl bg-slate-900 px-5 py-3 text-center text-sm font-bold text-white shadow-2xl">
+          {message}
+        </div>
+      )}
 
-            <h2 className="text-4xl font-black leading-tight sm:text-6xl">
+      {/* LOCATION BAR */}
+      <section className="border-b border-fuchsia-100 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-2 px-4 py-3 text-center text-xs font-semibold text-gray-700 sm:text-sm">
+          <span className="text-lg">📍</span>
+          <span>
+            Sai Nagar, 7th Cross, Anantapur
+          </span>
+          <span className="hidden text-fuchsia-500 sm:inline">
+            •
+          </span>
+          <span className="text-fuchsia-600">
+            Fast &amp; Friendly Shopping
+          </span>
+        </div>
+      </section>
+
+      {/* HERO */}
+      <section className="bg-gradient-to-br from-violet-100 via-fuchsia-50 to-pink-100">
+        <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-12 md:grid-cols-2 md:py-20">
+          <div>
+            <div className="mb-3 font-black uppercase tracking-[0.2em] text-fuchsia-600">
+              New Collection
+            </div>
+
+            <h1 className="text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
               Beautiful Fashion
               <br />
               Made For You
-            </h2>
+            </h1>
 
-            <p className="mt-5 max-w-xl text-lg text-slate-600">
-              Discover stylish women&apos;s clothing at affordable
-              prices. Kurtis, sarees, dresses, night wear and more.
+            <p className="mt-5 max-w-xl text-base leading-7 text-gray-600 sm:text-lg">
+              Discover stylish women&apos;s kurtis,
+              sarees, dresses, night wear, casual
+              wear and party outfits at affordable
+              prices.
             </p>
 
-            <button
-              onClick={() => {
-                setCategory("All");
-                window.scrollTo({
-                  top: 650,
-                  behavior: "smooth",
-                });
-              }}
-              className="mt-7 rounded-full bg-pink-600 px-7 py-4 font-bold text-white shadow-lg hover:bg-pink-700"
-            >
-              Shop Now →
-            </button>
-          </div>
-
-          <div className="flex min-h-[320px] items-center justify-center rounded-3xl bg-pink-200 p-8">
-            <div className="text-center">
-              <div className="text-8xl">👗</div>
-
-              <h3 className="mt-5 text-3xl font-black text-pink-700">
-                Bee Girl Shopping
-              </h3>
-
-              <p className="mt-2 text-slate-600">
-                Fashion • Style • Comfort
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CATEGORIES */}
-      <section className="mx-auto max-w-7xl px-4 py-8">
-        <div className="flex gap-3 overflow-x-auto pb-3">
-          {categories.map((item) => (
-            <button
-              key={item}
-              onClick={() => setCategory(item)}
-              className={`whitespace-nowrap rounded-full px-6 py-3 font-semibold ${
-                category === item
-                  ? "bg-pink-600 text-white"
-                  : "bg-white text-slate-700 shadow-sm"
-              }`}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* PRODUCTS */}
-      <section className="mx-auto max-w-7xl px-4 pb-16">
-        <div className="mb-7 flex items-end justify-between">
-          <div>
-            <p className="font-bold uppercase tracking-widest text-pink-600">
-              Our Collection
-            </p>
-
-            <h2 className="text-3xl font-black">
-              Women&apos;s Fashion
-            </h2>
-          </div>
-
-          <p className="text-sm text-slate-500">
-            {filteredProducts.length} products
-          </p>
-        </div>
-
-        {filteredProducts.length === 0 ? (
-          <div className="rounded-2xl bg-white p-12 text-center">
-            <div className="text-5xl">🔍</div>
-
-            <h3 className="mt-4 text-xl font-bold">
-              No products found
-            </h3>
-
-            <button
-              onClick={() => {
-                setSearch("");
-                setCategory("All");
-              }}
-              className="mt-5 rounded-full bg-pink-600 px-6 py-3 font-bold text-white"
-            >
-              View All Products
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {filteredProducts.map((product) => (
-              <article
-                key={product.id}
-                className="overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-              >
-                <button
-                  onClick={() => openProduct(product)}
-                  className="block w-full"
-                >
-                  <div className="aspect-square bg-pink-50">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  </div>
-                </button>
-
-                <div className="p-4">
-                  <p className="text-xs font-bold text-pink-600">
-                    {product.category}
-                  </p>
-
-                  <h3 className="mt-1 min-h-[48px] text-lg font-bold">
-                    {product.name}
-                  </h3>
-
-                  <p className="mt-2 text-xl font-black text-pink-600">
-                    ₹{product.price.toLocaleString("en-IN")}
-                  </p>
-
-                  <button
-                    onClick={() => openProduct(product)}
-                    className="mt-4 w-full rounded-xl bg-pink-600 py-3 font-bold text-white hover:bg-pink-700"
-                  >
-                    Select Size & Colour
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* PRODUCT DETAILS MODAL */}
-      {productOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white">
-            <div className="grid md:grid-cols-2">
-              <div className="aspect-square bg-pink-50">
-                <img
-                  src={productOpen.image}
-                  alt={productOpen.name}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-
-              <div className="p-6">
-                <button
-                  onClick={() => setProductOpen(null)}
-                  className="float-right rounded-full bg-slate-100 px-3 py-2"
-                >
-                  ✕
-                </button>
-
-                <p className="text-sm font-bold text-pink-600">
-                  {productOpen.category}
-                </p>
-
-                <h2 className="mt-2 text-2xl font-black">
-                  {productOpen.name}
-                </h2>
-
-                <p className="mt-3 text-2xl font-black text-pink-600">
-                  ₹{productOpen.price.toLocaleString("en-IN")}
-                </p>
-
-                <p className="mt-4 text-slate-600">
-                  {productOpen.description}
-                </p>
-
-                {/* SIZE */}
-                <div className="mt-6">
-                  <h3 className="font-bold">
-                    Select Size
-                  </h3>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {productOpen.sizes.map((size) => (
-                      <button
-                        key={size}
-                        onClick={() => setSelectedSize(size)}
-                        className={`rounded-lg border px-5 py-3 font-semibold ${
-                          selectedSize === size
-                            ? "border-pink-600 bg-pink-600 text-white"
-                            : "border-slate-300 bg-white"
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* COLOUR */}
-                <div className="mt-6">
-                  <h3 className="font-bold">
-                    Select Colour
-                  </h3>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {productOpen.colors.map((color) => (
-                      <button
-                        key={color}
-                        onClick={() => setSelectedColor(color)}
-                        className={`rounded-lg border px-5 py-3 font-semibold ${
-                          selectedColor === color
-                            ? "border-pink-600 bg-pink-600 text-white"
-                            : "border-slate-300 bg-white"
-                        }`}
-                      >
-                        {color}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => addToCart(productOpen)}
-                  className="mt-7 w-full rounded-xl bg-pink-600 py-4 font-bold text-white hover:bg-pink-700"
-                >
-                  🛒 Add to Cart
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CART */}
-      {cartOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60">
-          <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white">
-            <div className="flex items-center justify-between border-b p-5">
-              <div>
-                <h2 className="text-2xl font-black">
-                  Your Cart
-                </h2>
-
-                <p className="text-sm text-slate-500">
-                  {cartCount} item(s)
-                </p>
-              </div>
-
+            <div className="mt-6 flex flex-wrap gap-3">
               <button
-                onClick={() => setCartOpen(false)}
-                className="rounded-full bg-slate-100 px-4 py-2"
+                type="button"
+                onClick={() => {
+                  setCategory("All");
+
+                  document
+                    .getElementById("collection")
+                    ?.scrollIntoView({
+                      behavior: "smooth",
+                    });
+                }}
+                className="rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 px-7 py-3.5 font-black text-white shadow-lg transition hover:scale-105"
               >
-                ✕
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-5">
-              {cart.length === 0 ? (
-                <div className="py-20 text-center">
-                  <div className="text-6xl">🛒</div>
-
-                  <h3 className="mt-5 text-xl font-bold">
-                    Your cart is empty
-                  </h3>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {cart.map((item) => (
-                    <div
-                      key={`${item.id}-${item.size}-${item.color}`}
-                      className="rounded-2xl border p-3"
-                    >
-                      <div className="flex gap-3">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="h-24 w-24 rounded-xl object-cover"
-                        />
-
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-bold">
-                            {item.name}
-                          </h3>
-
-                          <p className="text-sm text-slate-500">
-                            Size: {item.size}
-                          </p>
-
-                          <p className="text-sm text-slate-500">
-                            Colour: {item.color}
-                          </p>
-
-                          <p className="mt-1 font-bold text-pink-600">
-                            ₹
-                            {(
-                              item.price * item.quantity
-                            ).toLocaleString("en-IN")}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() =>
-                              decreaseQuantity(
-                                item.id,
-                                item.size,
-                                item.color
-                              )
-                            }
-                            className="h-9 w-9 rounded-full bg-slate-100 font-bold"
-                          >
-                            −
-                          </button>
-
-                          <span className="font-bold">
-                            {item.quantity}
-                          </span>
-
-                          <button
-                            onClick={() =>
-                              increaseQuantity(
-                                item.id,
-                                item.size,
-                                item.color
-                              )
-                            }
-                            className="h-9 w-9 rounded-full bg-pink-100 font-bold text-pink-600"
-                          >
-                            +
-                          </button>
-                        </div>
-
-                        <button
-                          onClick={() =>
-                            removeItem(
-                              item.id,
-                              item.size,
-                              item.color
-                            )
-                          }
-                          className="text-sm font-semibold text-red-500"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {cart.length > 0 && (
-              <div className="border-t p-5">
-                <div className="mb-4 flex justify-between text-xl font-black">
-                  <span>Total</span>
-                  <span className="text-pink-600">
-                    ₹{cartTotal.toLocaleString("en-IN")}
-                  </span>
-                </div>
-
-                <button
-                  onClick={startCheckout}
-                  className="w-full rounded-xl bg-pink-600 py-4 font-bold text-white hover:bg-pink-700"
-                >
-                  Proceed to Checkout
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* CHECKOUT */}
-      {checkout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-black">
-                  Delivery Details
-                </h2>
-
-                <p className="mt-1 text-slate-500">
-                  Total: ₹{cartTotal.toLocaleString("en-IN")}
-                </p>
-              </div>
-
-              <button
-                onClick={() => setCheckout(false)}
-                className="rounded-full bg-slate-100 px-4 py-2"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Full Name"
-                className="w-full rounded-xl border border-slate-300 px-4 py-4 outline-none focus:border-pink-500"
-              />
-
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Mobile Number"
-                inputMode="numeric"
-                className="w-full rounded-xl border border-slate-300 px-4 py-4 outline-none focus:border-pink-500"
-              />
-
-              <textarea
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Complete Delivery Address"
-                rows={4}
-                className="w-full rounded-xl border border-slate-300 px-4 py-4 outline-none focus:border-pink-500"
-              />
-
-              <input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
-                className="w-full rounded-xl border border-slate-300 px-4 py-4 outline-none focus:border-pink-500"
-              />
-
-              <input
-                value={pincode}
-                onChange={(e) => setPincode(e.target.value)}
-                placeholder="Pincode"
-                inputMode="numeric"
-                maxLength={6}
-                className="w-full rounded-xl border border-slate-300 px-4 py-4 outline-none focus:border-pink-500"
-              />
-
-              <button
-                onClick={placeOrder}
-                className="w-full rounded-xl bg-pink-600 py-4 font-bold text-white hover:bg-pink-700"
-              >
-                Place Order
+                Shop Now →
               </button>
 
-              <p className="text-center text-xs text-slate-500">
-                Your order details will be submitted securely.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ORDER SUCCESS */}
-      {orderPlaced && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center">
-            <div className="text-6xl">✅</div>
-
-            <h2 className="mt-5 text-3xl font-black">
-              Order Placed!
-            </h2>
-
-            <p className="mt-3 text-slate-600">
-              Thank you for shopping with Bee Girl Shopping.
-              Your order has been received successfully.
-            </p>
-
-            <button
-              onClick={() => {
-                setOrderPlaced(false);
-                setName("");
-                setPhone("");
-                setAddress("");
-                setCity("");
-                setPincode("");
-              }}
-              className="mt-7 w-full rounded-xl bg-pink-600 py-4 font-bold text-white"
-            >
-              Continue Shopping
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* FOOTER */}
-      <footer className="border-t bg-slate-950 px-4 py-10 text-white">
-        <div className="mx-auto max-w-7xl text-center">
-          <h2 className="text-2xl font-black text-pink-400">
-            Sindhu Shopping
-          </h2>
-
-          <p className="mt-2 text-slate-400">
-            Women&apos;s Fashion • Style • Comfort
-          </p>
-
-          <p className="mt-6 text-sm text-slate-500">
-            © {new Date().getFullYear()} Sindhu Shopping. All rights reserved.
-          </p>
-        </div>
-      </footer>
-    </main>
-  );
-}
+              <a
+                href={whatsappSupport}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border-2 border-green-500 bg-white px-6 py-3 font-black text-green-600 shadow-sm transition hover:bg-green-50"
+              >
+            
