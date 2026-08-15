@@ -6,8 +6,8 @@ type Product = {
   id: number;
   name: string;
   price: number;
-  image: string;
   category: string;
+  image: string;
   sizes: string[];
   colours: string[];
 };
@@ -19,7 +19,7 @@ const products: Product[] = [
     price: 799,
     category: "Kurtis",
     image:
-      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?auto=format&fit=crop&w=900&q=85",
+      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?auto=format&fit=crop&w=800&q=85",
     sizes: ["S", "M", "L", "XL", "XXL"],
     colours: ["Blue", "Black", "Pink"],
   },
@@ -29,29 +29,96 @@ const products: Product[] = [
     price: 1199,
     category: "Kurtis",
     image:
-      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=85",
+      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=85",
     sizes: ["S", "M", "L", "XL"],
     colours: ["Pink", "Red", "Green"],
   },
   {
     id: 3,
-    name: "Beautiful Saree",
+    name: "Beautiful Party Saree",
     price: 999,
     category: "Sarees",
     image:
-      "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=900&q=85",
+      "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=85",
     sizes: ["Free Size"],
     colours: ["Red", "Blue", "Green"],
   },
   {
     id: 4,
-    name: "Stylish Women Kurti",
-    price: 899,
-    category: "Kurtis",
+    name: "Premium Silk Saree",
+    price: 1499,
+    category: "Sarees",
     image:
-      "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=900&q=85",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    colours: ["Yellow", "Blue", "Pink"],
+      "https://images.unsplash.com/photo-1610189012906-4c7b0d1b8e85?auto=format&fit=crop&w=800&q=85",
+    sizes: ["Free Size"],
+    colours: ["Purple", "Green", "Pink"],
+  },
+  {
+    id: 5,
+    name: "Bridal Lehenga",
+    price: 2499,
+    category: "Lehengas",
+    image:
+      "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=800&q=85",
+    sizes: ["S", "M", "L", "XL"],
+    colours: ["Maroon", "Pink", "Red"],
+  },
+  {
+    id: 6,
+    name: "Designer Lehenga",
+    price: 1999,
+    category: "Lehengas",
+    image:
+      "https://images.unsplash.com/photo-1583391733970-7d8e2e6b5f4e?auto=format&fit=crop&w=800&q=85",
+    sizes: ["S", "M", "L", "XL"],
+    colours: ["Pink", "Blue", "Wine"],
+  },
+  {
+    id: 7,
+    name: "Comfort Night Suit",
+    price: 699,
+    category: "Night Wear",
+    image:
+      "https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=800&q=85",
+    sizes: ["M", "L", "XL", "XXL"],
+    colours: ["Pink", "Blue", "Purple"],
+  },
+  {
+    id: 8,
+    name: "Soft Cotton Night Wear",
+    price: 749,
+    category: "Night Wear",
+    image:
+      "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800&q=85",
+    sizes: ["M", "L", "XL", "XXL"],
+    colours: ["Blue", "Grey", "Pink"],
+  },
+];
+
+const categories = [
+  {
+    name: "Kurtis",
+    title: "Elegant Kurtis",
+    subtitle: "Everyday style with beautiful designs",
+    image: products[0].image,
+  },
+  {
+    name: "Sarees",
+    title: "Graceful Sarees",
+    subtitle: "Traditional beauty with a modern touch",
+    image: products[2].image,
+  },
+  {
+    name: "Lehengas",
+    title: "Designer Lehengas",
+    subtitle: "Perfect for celebrations",
+    image: products[4].image,
+  },
+  {
+    name: "Night Wear",
+    title: "Comfort Night Wear",
+    subtitle: "Relax in comfort and style",
+    image: products[6].image,
   },
 ];
 
@@ -61,19 +128,27 @@ export default function Home() {
   const [colour, setColour] = useState("");
   const [wishlist, setWishlist] = useState<number[]>([]);
   const [cartCount, setCartCount] = useState(0);
-  const [category, setCategory] = useState("All");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("bee-girl-shopping-cart");
-      if (saved) {
-        const cart = JSON.parse(saved);
-        setCartCount(cart.length);
-      }
+      const cart = JSON.parse(
+        localStorage.getItem("bee-girl-shopping-cart") || "[]"
+      );
 
-      const savedWish = localStorage.getItem("bee-girl-wishlist");
-      if (savedWish) setWishlist(JSON.parse(savedWish));
+      setCartCount(
+        cart.reduce(
+          (total: number, item: any) =>
+            total + Number(item.quantity || 1),
+          0
+        )
+      );
+
+      const wish = JSON.parse(
+        localStorage.getItem("bee-girl-wishlist") || "[]"
+      );
+
+      setWishlist(wish);
     } catch {}
   }, []);
 
@@ -90,7 +165,11 @@ export default function Home() {
       : [...wishlist, id];
 
     setWishlist(updated);
-    localStorage.setItem("bee-girl-wishlist", JSON.stringify(updated));
+
+    localStorage.setItem(
+      "bee-girl-wishlist",
+      JSON.stringify(updated)
+    );
   }
 
   function addToCart() {
@@ -106,33 +185,34 @@ export default function Home() {
       return;
     }
 
-    const item = {
-      id: selected.id,
-      name: selected.name,
-      price: selected.price,
-      size,
-      color: colour,
-      quantity: 1,
-    };
-
     let cart: any[] = [];
 
     try {
-      const saved = localStorage.getItem("bee-girl-shopping-cart");
-      if (saved) cart = JSON.parse(saved);
-    } catch {}
+      cart = JSON.parse(
+        localStorage.getItem("bee-girl-shopping-cart") || "[]"
+      );
+    } catch {
+      cart = [];
+    }
 
     const existing = cart.find(
-      (x) =>
-        x.id === item.id &&
-        x.size === item.size &&
-        x.color === item.color
+      (item) =>
+        item.id === selected.id &&
+        item.size === size &&
+        item.color === colour
     );
 
     if (existing) {
       existing.quantity += 1;
     } else {
-      cart.push(item);
+      cart.push({
+        id: selected.id,
+        name: selected.name,
+        price: selected.price,
+        size,
+        color: colour,
+        quantity: 1,
+      });
     }
 
     localStorage.setItem(
@@ -140,98 +220,112 @@ export default function Home() {
       JSON.stringify(cart)
     );
 
-    setCartCount(cart.length);
+    setCartCount(
+      cart.reduce(
+        (total, item) => total + Number(item.quantity || 1),
+        0
+      )
+    );
+
     setSelected(null);
-    setMessage("");
   }
 
-  const filtered =
-    category === "All"
-      ? products
-      : products.filter((p) => p.category === category);
+  function showCategory(category: string) {
+    const element = document.getElementById(category);
+    element?.scrollIntoView({ behavior: "smooth" });
+  }
 
   return (
-    <main className="site">
+    <main>
       <style jsx global>{`
         * {
           box-sizing: border-box;
         }
 
-        body {
-          margin: 0;
-          font-family: Arial, sans-serif;
-          background: #fff4fa;
-          color: #17172b;
+        html {
+          scroll-behavior: smooth;
         }
 
-        .site {
-          min-height: 100vh;
+        body {
+          margin: 0;
+          font-family: Arial, Helvetica, sans-serif;
+          background: #f8f5ff;
+          color: #18182b;
+        }
+
+        button {
+          font-family: inherit;
         }
 
         .header {
           position: sticky;
           top: 0;
           z-index: 50;
-          background: white;
-          padding: 14px 5%;
+          background: rgba(255,255,255,.96);
+          backdrop-filter: blur(12px);
           display: flex;
-          align-items: center;
           justify-content: space-between;
-          box-shadow: 0 2px 15px rgba(0,0,0,.1);
+          align-items: center;
+          padding: 14px 5%;
+          box-shadow: 0 3px 18px rgba(0,0,0,.08);
         }
 
         .brand {
-          color: #e60073;
-          font-size: 22px;
+          color: #7137c8;
+          font-size: 23px;
           font-weight: 800;
         }
 
         .tag {
-          font-size: 12px;
           color: #777;
+          font-size: 12px;
           margin-top: 3px;
         }
 
-        .cart {
-          background: #e60073;
-          color: white;
+        .cartButton {
           border: 0;
+          background: #7137c8;
+          color: white;
+          padding: 12px 20px;
           border-radius: 30px;
-          padding: 12px 18px;
           font-weight: bold;
           cursor: pointer;
         }
 
         .hero {
-          padding: 65px 6%;
-          text-align: center;
+          min-height: 550px;
+          padding: 80px 6%;
+          display: grid;
+          grid-template-columns: 1.1fr .9fr;
+          gap: 40px;
+          align-items: center;
           background:
-            radial-gradient(circle at top left,#ffd5ec,transparent 40%),
-            linear-gradient(135deg,#fff1f8,#f2eaff);
+            radial-gradient(circle at 15% 20%, #ead9ff, transparent 35%),
+            linear-gradient(135deg,#faf6ff,#eee5ff);
         }
 
-        .hero-small {
-          color: #e60073;
+        .heroText small {
+          color: #7137c8;
           font-weight: bold;
-          letter-spacing: 2px;
+          letter-spacing: 3px;
         }
 
         .hero h1 {
-          font-size: clamp(42px,8vw,76px);
-          line-height: 1.05;
-          margin: 15px 0;
+          font-size: clamp(45px,7vw,78px);
+          line-height: 1.02;
+          margin: 18px 0;
         }
 
         .hero p {
           color: #666;
           font-size: 18px;
-          line-height: 1.6;
+          line-height: 1.7;
         }
 
-        .shop {
+        .shopButton {
           display: inline-block;
           margin-top: 15px;
-          background: #e60073;
+          background: #7137c8;
           color: white;
           padding: 15px 28px;
           border-radius: 30px;
@@ -239,73 +333,87 @@ export default function Home() {
           font-weight: bold;
         }
 
-        .info {
-          margin: 25px auto;
-          max-width: 900px;
-          background: white;
+        .heroImage {
+          width: 100%;
+          height: 470px;
+          object-fit: cover;
+          border-radius: 35px;
+          box-shadow: 0 20px 50px rgba(70,30,120,.2);
+        }
+
+        .location {
+          margin: 30px 5%;
           padding: 25px;
-          border-radius: 22px;
+          background: white;
+          border-radius: 25px;
           text-align: center;
-          box-shadow: 0 5px 25px rgba(0,0,0,.08);
+          box-shadow: 0 8px 30px rgba(0,0,0,.08);
         }
 
         .whatsapp {
           display: inline-block;
-          margin-top: 12px;
-          background: #25d366;
+          background: #20c96b;
           color: white;
-          padding: 13px 22px;
-          border-radius: 30px;
           text-decoration: none;
+          padding: 12px 22px;
+          border-radius: 25px;
           font-weight: bold;
         }
 
-        .collection {
-          padding: 35px 5%;
-        }
-
-        .categories {
+        .categoryNav {
           display: flex;
-          gap: 10px;
-          overflow-x: auto;
-          padding: 10px 0 25px;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 12px;
+          padding: 25px 5%;
         }
 
-        .category {
-          border: 1px solid #ddd;
+        .categoryNav button {
+          border: 0;
           background: white;
-          padding: 10px 18px;
+          padding: 12px 22px;
           border-radius: 25px;
-          white-space: nowrap;
           cursor: pointer;
+          box-shadow: 0 3px 12px rgba(0,0,0,.08);
         }
 
-        .category.active {
-          background: #e60073;
-          color: white;
-          border-color: #e60073;
+        .section {
+          padding: 55px 5%;
         }
 
-        .products {
+        .sectionHead {
+          text-align: center;
+          margin-bottom: 25px;
+        }
+
+        .sectionHead h2 {
+          font-size: 34px;
+          margin: 8px 0;
+        }
+
+        .sectionHead p {
+          color: #777;
+        }
+
+        .productGrid {
           display: grid;
-          grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+          grid-template-columns: repeat(4,1fr);
           gap: 20px;
         }
 
         .card {
           background: white;
-          border-radius: 20px;
+          border-radius: 22px;
           overflow: hidden;
-          box-shadow: 0 5px 20px rgba(0,0,0,.1);
           position: relative;
+          box-shadow: 0 8px 25px rgba(0,0,0,.08);
         }
 
-        .product-img {
+        .productImage {
           width: 100%;
           height: 330px;
           object-fit: cover;
           display: block;
-          background: #eee;
         }
 
         .heart {
@@ -317,31 +425,35 @@ export default function Home() {
           border: 0;
           border-radius: 50%;
           background: white;
-          font-size: 23px;
+          font-size: 22px;
           cursor: pointer;
-          box-shadow: 0 2px 10px #aaa;
         }
 
-        .card-body {
+        .cardBody {
           padding: 16px;
         }
 
-        .category-name {
-          color: #e60073;
+        .categoryName {
+          color: #7137c8;
           font-size: 13px;
           font-weight: bold;
         }
 
-        .price {
-          color: #e60073;
-          font-size: 21px;
-          font-weight: bold;
+        .cardBody h3 {
+          margin: 8px 0;
         }
 
-        .select {
+        .price {
+          color: #7137c8;
+          font-size: 20px;
+          font-weight: bold;
+          margin-bottom: 14px;
+        }
+
+        .selectButton {
           width: 100%;
           border: 0;
-          background: #e60073;
+          background: #7137c8;
           color: white;
           padding: 13px;
           border-radius: 25px;
@@ -349,19 +461,48 @@ export default function Home() {
           cursor: pointer;
         }
 
-        .footer {
-          margin-top: 50px;
-          padding: 35px;
-          text-align: center;
-          background: #17172b;
+        .categoryBanner {
+          min-height: 280px;
+          margin-bottom: 20px;
+          border-radius: 30px;
+          overflow: hidden;
+          position: relative;
+        }
+
+        .categoryBanner img {
+          width: 100%;
+          height: 280px;
+          object-fit: cover;
+          display: block;
+          filter: brightness(.65);
+        }
+
+        .bannerText {
+          position: absolute;
+          left: 35px;
+          top: 50%;
+          transform: translateY(-50%);
           color: white;
         }
 
-        .modal-bg {
+        .bannerText h2 {
+          font-size: 38px;
+          margin: 0 0 8px;
+        }
+
+        .footer {
+          margin-top: 50px;
+          background: #17152b;
+          color: white;
+          padding: 45px 20px;
+          text-align: center;
+        }
+
+        .modalBackground {
           position: fixed;
           inset: 0;
-          background: rgba(0,0,0,.65);
           z-index: 100;
+          background: rgba(0,0,0,.65);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -369,16 +510,16 @@ export default function Home() {
         }
 
         .modal {
+          background: white;
           width: 100%;
           max-width: 500px;
           max-height: 90vh;
           overflow-y: auto;
-          background: white;
           border-radius: 25px;
           padding: 20px;
         }
 
-        .modal-img {
+        .modalImage {
           width: 100%;
           height: 280px;
           object-fit: cover;
@@ -388,42 +529,41 @@ export default function Home() {
         .options {
           display: flex;
           flex-wrap: wrap;
-          gap: 9px;
+          gap: 8px;
         }
 
         .option {
           border: 1px solid #ccc;
           background: white;
-          padding: 10px 16px;
+          padding: 10px 17px;
           border-radius: 20px;
           cursor: pointer;
         }
 
         .option.selected {
-          background: #e60073;
+          background: #7137c8;
           color: white;
-          border-color: #e60073;
+          border-color: #7137c8;
         }
 
-        .add {
+        .addButton {
           width: 100%;
-          margin-top: 20px;
-          padding: 15px;
           border: 0;
-          border-radius: 25px;
-          background: #e60073;
+          background: #7137c8;
           color: white;
+          padding: 15px;
+          margin-top: 20px;
+          border-radius: 25px;
           font-weight: bold;
-          font-size: 16px;
           cursor: pointer;
         }
 
-        .close {
+        .closeButton {
           width: 100%;
-          margin-top: 8px;
-          padding: 12px;
           border: 0;
           background: #eee;
+          padding: 12px;
+          margin-top: 8px;
           border-radius: 25px;
           cursor: pointer;
         }
@@ -434,44 +574,123 @@ export default function Home() {
           font-weight: bold;
           margin-top: 12px;
         }
+
+        @media(max-width:900px) {
+          .hero {
+            grid-template-columns: 1fr;
+            text-align: center;
+          }
+
+          .heroImage {
+            height: 380px;
+          }
+
+          .productGrid {
+            grid-template-columns: repeat(2,1fr);
+          }
+        }
+
+        @media(max-width:550px) {
+          .header {
+            padding: 12px 4%;
+          }
+
+          .brand {
+            font-size: 18px;
+          }
+
+          .cartButton {
+            padding: 10px 13px;
+          }
+
+          .hero {
+            padding: 55px 5%;
+          }
+
+          .hero h1 {
+            font-size: 43px;
+          }
+
+          .productGrid {
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+          }
+
+          .productImage {
+            height: 230px;
+          }
+
+          .cardBody {
+            padding: 11px;
+          }
+
+          .cardBody h3 {
+            font-size: 15px;
+          }
+
+          .categoryBanner,
+          .categoryBanner img {
+            height: 220px;
+          }
+
+          .bannerText {
+            left: 20px;
+          }
+
+          .bannerText h2 {
+            font-size: 29px;
+          }
+        }
       `}</style>
 
       <header className="header">
         <div>
           <div className="brand">🌸 Bee Girl Shopping</div>
-          <div className="tag">Women's Fashion • Style • Comfort</div>
+          <div className="tag">
+            Women's Fashion • Style • Comfort
+          </div>
         </div>
 
         <button
-          className="cart"
-          onClick={() => (window.location.href = "/checkout")}
+          className="cartButton"
+          onClick={() => {
+            window.location.href = "/checkout";
+          }}
         >
           🛒 Cart ({cartCount})
         </button>
       </header>
 
       <section className="hero">
-        <div className="hero-small">✨ NEW COLLECTION ✨</div>
+        <div className="heroText">
+          <small>✨ NEW COLLECTION ✨</small>
 
-        <h1>
-          Beautiful Fashion
-          <br />
-          Made For You
-        </h1>
+          <h1>
+            Fashion
+            <br />
+            Made For You
+          </h1>
 
-        <p>
-          Discover stylish women's clothing at affordable prices.
-          <br />
-          Kurtis • Sarees • Dresses • Night Wear
-        </p>
+          <p>
+            Discover beautiful women's fashion for every
+            occasion — from everyday kurtis to elegant sarees,
+            designer lehengas and comfortable night wear.
+          </p>
 
-        <a className="shop" href="#collection">
-          Shop Now →
-        </a>
+          <a className="shopButton" href="#collections">
+            Explore Collection →
+          </a>
+        </div>
+
+        <img
+          className="heroImage"
+          src={products[1].image}
+          alt="Bee Girl Shopping"
+        />
       </section>
 
-      <section className="info">
-        <h3>📍 Our Location</h3>
+      <section className="location">
+        <h3>📍 Visit Bee Girl Shopping</h3>
         <p>Sai Nagar, 7th Cross, Anantapur</p>
 
         <a
@@ -484,84 +703,107 @@ export default function Home() {
         </a>
       </section>
 
-      <section id="collection" className="collection">
-        <div style={{ color: "#e60073", fontWeight: "bold" }}>
-          OUR COLLECTION
-        </div>
+      <div className="categoryNav">
+        {categories.map((c) => (
+          <button
+            key={c.name}
+            onClick={() => showCategory(c.name)}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
 
-        <h2>Women's Fashion</h2>
+      <div id="collections">
+        {categories.map((cat) => {
+          const items = products.filter(
+            (p) => p.category === cat.name
+          );
 
-        <div className="categories">
-          {["All", "Kurtis", "Sarees"].map((c) => (
-            <button
-              key={c}
-              className={`category ${
-                category === c ? "active" : ""
-              }`}
-              onClick={() => setCategory(c)}
+          return (
+            <section
+              key={cat.name}
+              id={cat.name}
+              className="section"
             >
-              {c}
-            </button>
-          ))}
-        </div>
+              <div className="categoryBanner">
+                <img src={cat.image} alt={cat.title} />
 
-        <div className="products">
-          {filtered.map((p) => (
-            <div className="card" key={p.id}>
-              <img
-                className="product-img"
-                src={p.image}
-                alt={p.name}
-              />
-
-              <button
-                className="heart"
-                onClick={() => toggleWishlist(p.id)}
-              >
-                {wishlist.includes(p.id) ? "❤️" : "♡"}
-              </button>
-
-              <div className="card-body">
-                <div className="category-name">
-                  {p.category}
+                <div className="bannerText">
+                  <h2>{cat.title}</h2>
+                  <p>{cat.subtitle}</p>
                 </div>
-
-                <h3>{p.name}</h3>
-
-                <div className="price">₹{p.price}</div>
-
-                <button
-                  className="select"
-                  onClick={() => openProduct(p)}
-                >
-                  Select Size & Colour
-                </button>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+
+              <div className="sectionHead">
+                <h2>{cat.name}</h2>
+                <p>Choose your favourite style</p>
+              </div>
+
+              <div className="productGrid">
+                {items.map((p) => (
+                  <div className="card" key={p.id}>
+                    <img
+                      className="productImage"
+                      src={p.image}
+                      alt={p.name}
+                    />
+
+                    <button
+                      className="heart"
+                      onClick={() => toggleWishlist(p.id)}
+                    >
+                      {wishlist.includes(p.id)
+                        ? "❤️"
+                        : "♡"}
+                    </button>
+
+                    <div className="cardBody">
+                      <div className="categoryName">
+                        {p.category}
+                      </div>
+
+                      <h3>{p.name}</h3>
+
+                      <div className="price">
+                        ₹{p.price}
+                      </div>
+
+                      <button
+                        className="selectButton"
+                        onClick={() => openProduct(p)}
+                      >
+                        Select Size & Colour
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
 
       <footer className="footer">
         <h2>🌸 Bee Girl Shopping</h2>
         <p>Fashion • Style • Comfort</p>
         <p>📍 Sai Nagar, 7th Cross, Anantapur</p>
-        <p>💬 WhatsApp Support Available</p>
+        <p>💬 WhatsApp Support</p>
         <p>© 2026 Bee Girl Shopping</p>
       </footer>
 
       {selected && (
-        <div className="modal-bg">
+        <div className="modalBackground">
           <div className="modal">
             <img
-              className="modal-img"
+              className="modalImage"
               src={selected.image}
               alt={selected.name}
             />
 
             <h2>{selected.name}</h2>
 
-            <h2 style={{ color: "#e60073" }}>
+            <h2 style={{ color: "#7137c8" }}>
               ₹{selected.price}
             </h2>
 
@@ -597,14 +839,19 @@ export default function Home() {
               ))}
             </div>
 
-            {message && <div className="error">{message}</div>}
+            {message && (
+              <div className="error">{message}</div>
+            )}
 
-            <button className="add" onClick={addToCart}>
+            <button
+              className="addButton"
+              onClick={addToCart}
+            >
               🛒 Add To Cart
             </button>
 
             <button
-              className="close"
+              className="closeButton"
               onClick={() => setSelected(null)}
             >
               Close
@@ -614,4 +861,4 @@ export default function Home() {
       )}
     </main>
   );
-}
+                      }
