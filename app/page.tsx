@@ -1,142 +1,315 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 
-const products = [
+type Product = {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  image: string;
+};
+
+type CartItem = Product & {
+  size: string;
+  colour: string;
+  quantity: number;
+};
+
+const products: Product[] = [
   {
     id: 1,
-    category: "Kurtis",
     name: "Elegant Cotton Kurti",
+    category: "Kurtis",
     price: 799,
-    image:
-      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=90",
+    image: "/products/kurti-1.jpg",
   },
   {
     id: 2,
-    category: "Kurtis",
     name: "Designer Anarkali Kurti",
+    category: "Kurtis",
     price: 1199,
-    image:
-      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?auto=format&fit=crop&w=600&q=90",
+    image: "/products/kurti-2.jpg",
   },
   {
     id: 3,
-    category: "Sarees",
-    name: "Beautiful Party Saree",
-    price: 999,
-    image:
-      "https://images.unsplash.com/photo-1610189012906-5c7d0f3f5d8b?auto=format&fit=crop&w=600&q=90",
+    name: "Printed Women Kurti",
+    category: "Kurtis",
+    price: 899,
+    image: "/products/kurti-3.jpg",
   },
   {
     id: 4,
-    category: "Sarees",
-    name: "Premium Silk Saree",
-    price: 1499,
-    image:
-      "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=600&q=90",
-  },
-  {
-    id: 5,
-    category: "Lehengas",
-    name: "Bridal Lehenga",
-    price: 2499,
-    image:
-      "https://images.unsplash.com/photo-1597983073493-88cd35cf93f7?auto=format&fit=crop&w=600&q=90",
-  },
-  {
-    id: 6,
-    category: "Lehengas",
-    name: "Designer Lehenga",
-    price: 1999,
-    image:
-      "https://images.unsplash.com/photo-1610030469668-8e9b1e6f7d7d?auto=format&fit=crop&w=600&q=90",
-  },
-  {
-    id: 7,
-    category: "Night Wear",
-    name: "Comfort Night Suit",
-    price: 699,
-    image:
-      "https://images.unsplash.com/photo-1578681994506-b8f463449011?auto=format&fit=crop&w=600&q=90",
-  },
-  {
-    id: 8,
-    category: "Night Wear",
-    name: "Soft Cotton Night Wear",
-    price: 749,
-    image:
-      "https://images.unsplash.com/photo-1585488434992-5c4b3f4d7a1d?auto=format&fit=crop&w=600&q=90",
+    name: "Premium Embroidered Kurti",
+    category: "Kurtis",
+    price: 1299,
+    image: "/products/kurti-4.jpg",
   },
 ];
 
 const sections = [
   {
-    name: "Kurtis",
+    category: "Kurtis",
     title: "Elegant Kurtis",
     subtitle: "Beautiful everyday styles",
-    banner:
-      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1200&q=90",
+    image: "/products/hero-violet-kurti.png",
   },
   {
-    name: "Sarees",
+    category: "Sarees",
     title: "Graceful Sarees",
     subtitle: "Traditional beauty with a modern touch",
-    banner:
-      "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1200&q=90",
+    image: "",
   },
   {
-    name: "Lehengas",
+    category: "Lehengas",
     title: "Designer Lehengas",
     subtitle: "Perfect for celebrations",
-    banner:
-      "https://images.unsplash.com/photo-1597983073493-88cd35cf93f7?auto=format&fit=crop&w=1200&q=90",
+    image: "",
   },
   {
-    name: "Night Wear",
+    category: "Night Wear",
     title: "Comfort Night Wear",
     subtitle: "Relax in comfort and style",
-    banner:
-      "https://images.unsplash.com/photo-1578681994506-b8f463449011?auto=format&fit=crop&w=1200&q=90",
+    image: "",
   },
 ];
 
 export default function Home() {
-  const [active, setActive] = useState("All");
-  const [search, setSearch] = useState("");
-  const [cart, setCart] = useState(0);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [activeCategory, setActiveCategory] = useState("All");
 
-  const filteredProducts = products.filter((product) => {
-    const categoryOK =
-      active === "All" || product.category === active;
+  const [selectedProduct, setSelectedProduct] =
+    useState<Product | null>(null);
 
-    const searchOK =
-      product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.category.toLowerCase().includes(search.toLowerCase());
+  const [selectedSize, setSelectedSize] = useState("M");
+  const [selectedColour, setSelectedColour] = useState("Purple");
 
-    return categoryOK && searchOK;
-  });
+  const [cartOpen, setCartOpen] = useState(false);
+
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [customerCity, setCustomerCity] = useState("");
+  const [customerPincode, setCustomerPincode] = useState("");
+
+  const [paymentLoading, setPaymentLoading] = useState(false);
+
+  const visibleProducts =
+    activeCategory === "All"
+      ? products
+      : products.filter(
+          (product) => product.category === activeCategory
+        );
+
+  const totalItems = cart.reduce(
+    (total, item) => total + item.quantity,
+    0
+  );
+
+  const totalAmount = cart.reduce(
+    (total, item) => total + item.price * item.quantity,
+    0
+  );
+
+  function addToCart() {
+    if (!selectedProduct) return;
+
+    setCart((oldCart) => {
+      const existing = oldCart.find(
+        (item) =>
+          item.id === selectedProduct.id &&
+          item.size === selectedSize &&
+          item.colour === selectedColour
+      );
+
+      if (existing) {
+        return oldCart.map((item) =>
+          item.id === selectedProduct.id &&
+          item.size === selectedSize &&
+          item.colour === selectedColour
+            ? {
+                ...item,
+                quantity: item.quantity + 1,
+              }
+            : item
+        );
+      }
+
+      return [
+        ...oldCart,
+        {
+          ...selectedProduct,
+          size: selectedSize,
+          colour: selectedColour,
+          quantity: 1,
+        },
+      ];
+    });
+
+    setSelectedProduct(null);
+    setCartOpen(true);
+  }
+
+  function changeQuantity(
+    id: number,
+    size: string,
+    colour: string,
+    change: number
+  ) {
+    setCart((oldCart) =>
+      oldCart
+        .map((item) =>
+          item.id === id &&
+          item.size === size &&
+          item.colour === colour
+            ? {
+                ...item,
+                quantity: item.quantity + change,
+              }
+            : item
+        )
+        .filter((item) => item.quantity > 0)
+    );
+  }
+
+  function removeItem(
+    id: number,
+    size: string,
+    colour: string
+  ) {
+    setCart((oldCart) =>
+      oldCart.filter(
+        (item) =>
+          !(
+            item.id === id &&
+            item.size === size &&
+            item.colour === colour
+          )
+      )
+    );
+  }
+
+  async function proceedToPay() {
+    if (cart.length === 0) {
+      alert("Please add a product to your cart first.");
+      return;
+    }
+
+    if (
+      !customerName ||
+      !customerPhone ||
+      !customerAddress ||
+      !customerCity ||
+      !customerPincode
+    ) {
+      alert("Please fill all customer details.");
+      return;
+    }
+
+    setPaymentLoading(true);
+
+    try {
+      const script = document.createElement("script");
+
+      script.src =
+        "https://checkout.razorpay.com/v1/checkout.js";
+
+      script.onload = () => {
+        const Razorpay = (window as any).Razorpay;
+
+        if (!Razorpay) {
+          alert("Razorpay could not be loaded.");
+          setPaymentLoading(false);
+          return;
+        }
+
+        const options = {
+          key:
+            process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+            "rzp_test_YOUR_KEY_ID",
+
+          amount: totalAmount * 100,
+
+          currency: "INR",
+
+          name: "Bee Girl Shopping",
+
+          description: "Women's Fashion Order",
+
+          prefill: {
+            name: customerName,
+            contact: customerPhone,
+          },
+
+          notes: {
+            address: customerAddress,
+            city: customerCity,
+            pincode: customerPincode,
+          },
+
+          theme: {
+            color: "#7935c4",
+          },
+
+          handler: function (response: any) {
+            alert(
+              "Payment successful!\nPayment ID: " +
+                response.razorpay_payment_id
+            );
+
+            setCart([]);
+            setCartOpen(false);
+            setPaymentLoading(false);
+          },
+
+          modal: {
+            ondismiss: function () {
+              setPaymentLoading(false);
+            },
+          },
+        };
+
+        const paymentObject = new Razorpay(options);
+
+        paymentObject.open();
+      };
+
+      script.onerror = () => {
+        alert("Unable to load Razorpay.");
+        setPaymentLoading(false);
+      };
+
+      document.body.appendChild(script);
+    } catch {
+      alert("Payment could not be started.");
+      setPaymentLoading(false);
+    }
+  }
 
   return (
-    <main className="site">
+    <main className="page">
 
       {/* HEADER */}
 
       <header className="header">
-        <Link href="/" className="brand">
-          <span className="flower">🌸</span>
+        <div className="brand">
+          <span>🌸</span>
 
           <div>
-            <strong>Bee Girl Shopping</strong>
+            <b>Bee Girl Shopping</b>
+
             <small>
               Women&apos;s Fashion • Kurtis • Sarees • Lehengas
             </small>
           </div>
-        </Link>
+        </div>
 
-        <Link href="/cart" className="cartButton">
-          🛒 Cart ({cart})
-        </Link>
+        <button
+          className="cartTop"
+          onClick={() => setCartOpen(true)}
+        >
+          🛒 Cart ({totalItems})
+        </button>
       </header>
 
 
@@ -144,9 +317,9 @@ export default function Home() {
 
       <section className="hero">
 
-        <div className="heroContent">
+        <div className="heroText">
 
-          <div className="collection">
+          <div className="newCollection">
             ✨ NEW COLLECTION ✨
           </div>
 
@@ -163,11 +336,13 @@ export default function Home() {
           </p>
 
           <button
-            className="explore"
+            className="purpleButton"
             onClick={() =>
               document
                 .getElementById("catalog")
-                ?.scrollIntoView({ behavior: "smooth" })
+                ?.scrollIntoView({
+                  behavior: "smooth",
+                })
             }
           >
             Explore Collection →
@@ -175,11 +350,13 @@ export default function Home() {
 
         </div>
 
-        <div className="heroPhoto">
+        <div className="heroImage">
+
           <img
-            src="https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=90"
+            src="/products/hero-violet-kurti.png"
             alt="Fashion collection"
           />
+
         </div>
 
       </section>
@@ -187,11 +364,14 @@ export default function Home() {
 
       {/* LOCATION */}
 
-      <section className="locationCard">
+      <section className="location">
 
-        <div className="locationText">
-          <strong>📍 Visit Bee Girl Shopping</strong>
-          <span>Near 7th Cross, Anantapur</span>
+        <div>
+          <b>📍 Visit Bee Girl Shopping</b>
+
+          <span>
+            Near 7th Cross, Anantapur
+          </span>
         </div>
 
         <a
@@ -199,7 +379,7 @@ export default function Home() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          📍 View Location
+          View Location
         </a>
 
       </section>
@@ -207,79 +387,89 @@ export default function Home() {
 
       {/* CATALOG */}
 
-      <section id="catalog" className="catalog">
+      <section
+        id="catalog"
+        className="catalog"
+      >
 
-        {/* CATEGORY BUTTONS */}
+        <div className="categories">
 
-        <div className="categoryButtons">
+          {[
+            "All",
+            "Kurtis",
+            "Sarees",
+            "Lehengas",
+            "Night Wear",
+          ].map((category) => (
 
-          {["All", "Kurtis", "Sarees", "Lehengas", "Night Wear"].map(
-            (item) => (
-              <button
-                key={item}
-                className={active === item ? "selected" : ""}
-                onClick={() => setActive(item)}
-              >
-                {item}
-              </button>
-            )
-          )}
+            <button
+              key={category}
+              className={
+                activeCategory === category
+                  ? "category active"
+                  : "category"
+              }
+              onClick={() =>
+                setActiveCategory(category)
+              }
+            >
+              {category}
+            </button>
+
+          ))}
 
         </div>
 
 
-        {/* SEARCH */}
-
-        <div className="searchBox">
-          🔍
-          <input
-            type="text"
-            placeholder="Search fashion..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-
-        {/* SECTIONS */}
+        {/* FOUR SECTIONS */}
 
         {sections.map((section) => {
 
           if (
-            active !== "All" &&
-            active !== section.name
+            activeCategory !== "All" &&
+            activeCategory !== section.category
           ) {
             return null;
           }
 
-          const sectionProducts = filteredProducts.filter(
-            (product) => product.category === section.name
-          );
-
-          if (sectionProducts.length === 0) {
-            return null;
-          }
+          const sectionProducts =
+            visibleProducts.filter(
+              (product) =>
+                product.category ===
+                section.category
+            );
 
           return (
             <section
               className="catalogSection"
-              key={section.name}
+              key={section.category}
             >
 
-              {/* BANNER */}
+              {/* SECTION BANNER */}
 
               <div className="sectionBanner">
 
-                <img
-                  src={section.banner}
-                  alt={section.title}
-                />
+                {section.image ? (
+                  <img
+                    src={section.image}
+                    alt={section.title}
+                  />
+                ) : (
+                  <div className="emptyBanner" />
+                )}
 
-                <div className="bannerOverlay" />
+                <div className="bannerShade" />
 
-                <div className="bannerWords">
-                  <h2>{section.title}</h2>
-                  <p>{section.subtitle}</p>
+                <div className="bannerText">
+
+                  <h2>
+                    {section.title}
+                  </h2>
+
+                  <p>
+                    {section.subtitle}
+                  </p>
+
                 </div>
 
               </div>
@@ -287,66 +477,91 @@ export default function Home() {
 
               {/* SECTION TITLE */}
 
-              <div className="sectionTitle">
-                <h2>{section.name}</h2>
-                <p>Choose your favorite style</p>
+              <div className="sectionHeading">
+
+                <h2>
+                  {section.category}
+                </h2>
+
+                <p>
+                  Choose your favorite style
+                </p>
+
               </div>
 
 
-              {/* PRODUCT GRID */}
+              {/* PRODUCTS */}
 
-              <div className="productGrid">
+              {sectionProducts.length > 0 ? (
 
-                {sectionProducts.map((product) => (
+                <div className="products">
 
-                  <article
-                    className="productCard"
-                    key={product.id}
-                  >
+                  {sectionProducts.map(
+                    (product) => (
 
-                    <div className="productImage">
-
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                      />
-
-                      <button className="heart">
-                        ♡
-                      </button>
-
-                    </div>
-
-                    <div className="productInfo">
-
-                      <span className="productCategory">
-                        {product.category}
-                      </span>
-
-                      <h3>{product.name}</h3>
-
-                      <strong>
-                        ₹{product.price}
-                      </strong>
-
-                      <button
-                        className="selectButton"
-                        onClick={() =>
-                          setCart((old) => old + 1)
-                        }
+                      <article
+                        className="product"
+                        key={product.id}
                       >
-                        Select Size &amp;
-                        <br />
-                        Colour
-                      </button>
 
-                    </div>
+                        <div className="productImage">
 
-                  </article>
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                          />
 
-                ))}
+                          <button className="heart">
+                            ♡
+                          </button>
 
-              </div>
+                        </div>
+
+
+                        <div className="productDetails">
+
+                          <small>
+                            {product.category}
+                          </small>
+
+                          <h3>
+                            {product.name}
+                          </h3>
+
+                          <strong>
+                            ₹{product.price}
+                          </strong>
+
+                          <button
+                            className="selectButton"
+                            onClick={() =>
+                              setSelectedProduct(
+                                product
+                              )
+                            }
+                          >
+                            Select Size &amp;
+                            <br />
+                            Colour
+                          </button>
+
+                        </div>
+
+                      </article>
+
+                    )
+                  )}
+
+                </div>
+
+              ) : (
+
+                <div className="comingSoon">
+                  More {section.category} products
+                  coming soon.
+                </div>
+
+              )}
 
             </section>
           );
@@ -355,11 +570,338 @@ export default function Home() {
       </section>
 
 
+      {/* PRODUCT SELECTION MODAL */}
+
+      {selectedProduct && (
+
+        <div className="modalBackground">
+
+          <div className="modal">
+
+            <button
+              className="close"
+              onClick={() =>
+                setSelectedProduct(null)
+              }
+            >
+              ×
+            </button>
+
+            <img
+              src={selectedProduct.image}
+              alt={selectedProduct.name}
+            />
+
+            <h2>
+              {selectedProduct.name}
+            </h2>
+
+            <strong>
+              ₹{selectedProduct.price}
+            </strong>
+
+
+            <label>
+              Select Size
+            </label>
+
+            <div className="options">
+
+              {["S", "M", "L", "XL", "XXL"].map(
+                (size) => (
+
+                  <button
+                    key={size}
+                    className={
+                      selectedSize === size
+                        ? "option selectedOption"
+                        : "option"
+                    }
+                    onClick={() =>
+                      setSelectedSize(size)
+                    }
+                  >
+                    {size}
+                  </button>
+
+                )
+              )}
+
+            </div>
+
+
+            <label>
+              Select Colour
+            </label>
+
+            <div className="options">
+
+              {[
+                "Purple",
+                "Pink",
+                "Black",
+                "Blue",
+              ].map((colour) => (
+
+                <button
+                  key={colour}
+                  className={
+                    selectedColour === colour
+                      ? "option selectedOption"
+                      : "option"
+                  }
+                  onClick={() =>
+                    setSelectedColour(
+                      colour
+                    )
+                  }
+                >
+                  {colour}
+                </button>
+
+              ))}
+
+            </div>
+
+
+            <button
+              className="addButton"
+              onClick={addToCart}
+            >
+              Add to Cart
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* CART */}
+
+      {cartOpen && (
+
+        <div className="cartBackground">
+
+          <div className="cartPanel">
+
+            <div className="cartHeader">
+
+              <h2>
+                Your Cart
+              </h2>
+
+              <button
+                onClick={() =>
+                  setCartOpen(false)
+                }
+              >
+                ×
+              </button>
+
+            </div>
+
+
+            {cart.length === 0 ? (
+
+              <div className="emptyCart">
+                Your cart is empty.
+              </div>
+
+            ) : (
+
+              <>
+                <div className="cartItems">
+
+                  {cart.map((item) => (
+
+                    <div
+                      className="cartItem"
+                      key={`${item.id}-${item.size}-${item.colour}`}
+                    >
+
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                      />
+
+                      <div className="cartInfo">
+
+                        <b>
+                          {item.name}
+                        </b>
+
+                        <small>
+                          Size: {item.size}
+                        </small>
+
+                        <small>
+                          Colour: {item.colour}
+                        </small>
+
+                        <strong>
+                          ₹{item.price}
+                        </strong>
+
+
+                        <div className="quantity">
+
+                          <button
+                            onClick={() =>
+                              changeQuantity(
+                                item.id,
+                                item.size,
+                                item.colour,
+                                -1
+                              )
+                            }
+                          >
+                            −
+                          </button>
+
+                          <span>
+                            {item.quantity}
+                          </span>
+
+                          <button
+                            onClick={() =>
+                              changeQuantity(
+                                item.id,
+                                item.size,
+                                item.colour,
+                                1
+                              )
+                            }
+                          >
+                            +
+                          </button>
+
+                        </div>
+
+                        <button
+                          className="remove"
+                          onClick={() =>
+                            removeItem(
+                              item.id,
+                              item.size,
+                              item.colour
+                            )
+                          }
+                        >
+                          Remove
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  ))}
+
+                </div>
+
+
+                {/* CUSTOMER DETAILS */}
+
+                <div className="checkout">
+
+                  <h3>
+                    Delivery Details
+                  </h3>
+
+                  <input
+                    placeholder="Full Name"
+                    value={customerName}
+                    onChange={(e) =>
+                      setCustomerName(
+                        e.target.value
+                      )
+                    }
+                  />
+
+                  <input
+                    placeholder="Mobile Number"
+                    value={customerPhone}
+                    onChange={(e) =>
+                      setCustomerPhone(
+                        e.target.value
+                      )
+                    }
+                  />
+
+                  <textarea
+                    placeholder="Full Address"
+                    value={customerAddress}
+                    onChange={(e) =>
+                      setCustomerAddress(
+                        e.target.value
+                      )
+                    }
+                  />
+
+                  <input
+                    placeholder="City"
+                    value={customerCity}
+                    onChange={(e) =>
+                      setCustomerCity(
+                        e.target.value
+                      )
+                    }
+                  />
+
+                  <input
+                    placeholder="Pincode"
+                    value={customerPincode}
+                    onChange={(e) =>
+                      setCustomerPincode(
+                        e.target.value
+                      )
+                    }
+                  />
+
+
+                  <div className="total">
+
+                    <span>
+                      Total
+                    </span>
+
+                    <strong>
+                      ₹{totalAmount}
+                    </strong>
+
+                  </div>
+
+
+                  <button
+                    className="payButton"
+                    onClick={proceedToPay}
+                    disabled={paymentLoading}
+                  >
+                    {paymentLoading
+                      ? "Opening Payment..."
+                      : "Proceed to Pay"}
+                  </button>
+
+                </div>
+              </>
+
+            )}
+
+          </div>
+
+        </div>
+
+      )}
+
+
       {/* FOOTER */}
 
       <footer>
 
-        <strong>🌸 Bee Girl Shopping</strong>
+        <b>
+          🌸 Bee Girl Shopping
+        </b>
 
         <span>
           Sarees • Kurtis • Lehengas
@@ -376,140 +918,127 @@ export default function Home() {
       </footer>
 
 
-      {/* STYLES */}
-
       <style jsx>{`
 
         * {
           box-sizing: border-box;
         }
 
-        body {
-          margin: 0;
-        }
-
-        .site {
+        .page {
           min-height: 100vh;
           background: #faf6ff;
-          color: #27212d;
+          color: #292330;
           font-family:
             Arial,
             Helvetica,
             sans-serif;
         }
 
+        button {
+          cursor: pointer;
+        }
+
 
         /* HEADER */
 
         .header {
-          height: 60px;
-          background: white;
+          height: 58px;
+          background: #fff;
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 0 18px;
-          border-bottom: 1px solid #eeeeee;
+          border-bottom: 1px solid #eee;
           position: sticky;
           top: 0;
-          z-index: 50;
+          z-index: 100;
         }
 
         .brand {
           display: flex;
+          gap: 6px;
           align-items: center;
-          gap: 5px;
-          text-decoration: none;
-          color: #29232f;
         }
 
-        .flower {
-          font-size: 11px;
-        }
-
-        .brand strong {
+        .brand b {
           display: block;
-          color: #7130bb;
-          font-size: 11px;
-          font-weight: 700;
+          color: #7532bd;
+          font-size: 12px;
         }
 
         .brand small {
           display: block;
-          color: #888;
-          font-size: 6px;
+          color: #777;
+          font-size: 7px;
           margin-top: 2px;
         }
 
-        .cartButton {
-          background: #7935c4;
+        .cartTop {
+          border: 0;
+          background: #7835c3;
           color: white;
-          text-decoration: none;
-          padding: 7px 12px;
           border-radius: 20px;
+          padding: 8px 13px;
           font-size: 8px;
-          font-weight: 600;
+          font-weight: bold;
         }
 
 
         /* HERO */
 
         .hero {
-          max-width: 1100px;
-          margin: auto;
-          min-height: 270px;
-          padding: 28px 24px;
+          min-height: 260px;
           display: grid;
-          grid-template-columns: 1fr 135px;
-          gap: 15px;
+          grid-template-columns: 1fr 150px;
+          gap: 18px;
           align-items: center;
+          padding: 28px 25px;
           background:
             linear-gradient(
               110deg,
-              #f8eaff,
+              #faedff,
               #edddfa
             );
         }
 
-        .collection {
-          color: #7837bd;
+        .newCollection {
           font-size: 6px;
+          color: #7834bd;
           letter-spacing: 2px;
           font-weight: bold;
         }
 
-        .heroContent h1 {
-          font-size: 34px;
-          line-height: .94;
+        .hero h1 {
+          font-size: 38px;
+          line-height: .92;
           font-weight: 400;
           margin: 9px 0;
         }
 
-        .heroContent p {
-          max-width: 350px;
-          color: #837889;
+        .hero p {
+          max-width: 380px;
+          color: #817787;
           font-size: 7px;
           line-height: 1.6;
-          margin-bottom: 9px;
         }
 
-        .explore {
-          border: none;
+        .purpleButton {
+          border: 0;
           background: #7935c4;
           color: white;
           border-radius: 18px;
-          padding: 7px 11px;
+          padding: 8px 13px;
           font-size: 6px;
           font-weight: bold;
         }
 
-        .heroPhoto {
-          height: 168px;
-          border-radius: 14px;
+        .heroImage {
+          height: 175px;
+          border-radius: 15px;
           overflow: hidden;
-          box-shadow: 0 7px 18px #6e36a329;
         }
 
-        .heroPhoto img {
+        .heroImage img {
           width: 100%;
           height: 100%;
           object-fit: cover;
@@ -518,45 +1047,41 @@ export default function Home() {
 
         /* LOCATION */
 
-        .locationCard {
+        .location {
           width: calc(100% - 35px);
-          max-width: 650px;
-          min-height: 55px;
-          margin: 13px auto 18px;
+          max-width: 600px;
+          min-height: 58px;
           background: white;
+          margin: 14px auto;
           border-radius: 12px;
-          box-shadow: 0 4px 18px #0000000c;
+          box-shadow: 0 4px 18px #00000010;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 15px;
-          padding: 9px;
-        }
-
-        .locationText {
+          gap: 20px;
           text-align: center;
         }
 
-        .locationText strong,
-        .locationText span {
+        .location b,
+        .location span {
           display: block;
         }
 
-        .locationText strong {
+        .location b {
           font-size: 7px;
         }
 
-        .locationText span {
+        .location span {
           font-size: 6px;
           color: #888;
-          margin-top: 2px;
+          margin-top: 3px;
         }
 
-        .locationCard a {
-          background: #20b967;
+        .location a {
+          background: #20b968;
           color: white;
-          padding: 6px 9px;
-          border-radius: 15px;
+          padding: 7px 11px;
+          border-radius: 20px;
           text-decoration: none;
           font-size: 6px;
           font-weight: bold;
@@ -571,151 +1096,129 @@ export default function Home() {
           padding: 0 17px 45px;
         }
 
-        .categoryButtons {
+        .categories {
           display: flex;
           justify-content: center;
-          align-items: center;
           flex-wrap: wrap;
           gap: 6px;
-          margin-bottom: 12px;
+          margin: 15px 0 25px;
         }
 
-        .categoryButtons button {
-          border: 1px solid #eeeeee;
+        .category {
+          border: 1px solid #eee;
           background: white;
-          color: #555;
           border-radius: 20px;
-          padding: 7px 12px;
+          padding: 7px 13px;
           font-size: 6px;
+          color: #555;
         }
 
-        .categoryButtons .selected {
-          color: white;
+        .category.active {
           background: #7935c4;
+          color: white;
           border-color: #7935c4;
         }
 
 
-        /* SEARCH */
-
-        .searchBox {
-          width: 90%;
-          max-width: 380px;
-          height: 30px;
-          margin: 0 auto 22px;
-          background: white;
-          border: 1px solid #eeeeee;
-          border-radius: 20px;
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          padding: 0 10px;
-          color: #888;
-          font-size: 9px;
-        }
-
-        .searchBox input {
-          flex: 1;
-          border: 0;
-          outline: 0;
-          font-size: 7px;
-          background: transparent;
-        }
-
-
-        /* BANNER */
+        /* SECTIONS */
 
         .catalogSection {
-          margin-bottom: 26px;
+          margin-bottom: 28px;
         }
 
         .sectionBanner {
-          height: 100px;
+          height: 105px;
           border-radius: 12px;
           overflow: hidden;
           position: relative;
+          background: #ddd;
         }
 
-        .sectionBanner img {
+        .sectionBanner img,
+        .emptyBanner {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
 
-        .bannerOverlay {
-          position: absolute;
-          inset: 0;
+        .emptyBanner {
           background:
             linear-gradient(
-              90deg,
-              rgba(0,0,0,.60),
-              rgba(0,0,0,.12)
+              120deg,
+              #c9c2ca,
+              #aaa3ac
             );
         }
 
-        .bannerWords {
+        .bannerShade {
           position: absolute;
-          left: 13px;
+          inset: 0;
+          background: linear-gradient(
+            90deg,
+            #00000080,
+            transparent
+          );
+        }
+
+        .bannerText {
+          position: absolute;
+          left: 15px;
           top: 50%;
           transform: translateY(-50%);
           color: white;
         }
 
-        .bannerWords h2 {
+        .bannerText h2 {
           margin: 0;
           font-size: 14px;
           font-weight: 400;
         }
 
-        .bannerWords p {
-          margin: 4px 0 0;
+        .bannerText p {
+          margin: 5px 0 0;
           font-size: 6px;
         }
 
-
-        /* TITLES */
-
-        .sectionTitle {
+        .sectionHeading {
           text-align: center;
-          margin: 17px 0 9px;
+          margin: 15px 0 9px;
         }
 
-        .sectionTitle h2 {
+        .sectionHeading h2 {
           margin: 0;
           font-size: 13px;
           font-weight: 500;
         }
 
-        .sectionTitle p {
-          margin: 4px 0 0;
-          color: #aaa;
+        .sectionHeading p {
+          margin: 4px;
           font-size: 6px;
+          color: #aaa;
         }
 
 
         /* PRODUCTS */
 
-        .productGrid {
+        .products {
           width: 100%;
           max-width: 430px;
           margin: auto;
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 7px;
+          gap: 8px;
         }
 
-        .productCard {
+        .product {
+          overflow: hidden;
           background: white;
           border-radius: 10px;
-          overflow: hidden;
-          box-shadow: 0 4px 14px #0000000c;
+          box-shadow: 0 4px 15px #00000012;
         }
 
         .productImage {
-          height: 155px;
-          background: #f0f0f0;
+          height: 160px;
+          background: #f2f2f2;
           position: relative;
-          overflow: hidden;
         }
 
         .productImage img {
@@ -726,34 +1229,33 @@ export default function Home() {
 
         .heart {
           position: absolute;
-          top: 5px;
           right: 5px;
-          width: 19px;
-          height: 19px;
+          top: 5px;
+          width: 20px;
+          height: 20px;
           border: 0;
           background: white;
           border-radius: 50%;
-          font-size: 12px;
-          color: #555;
+          font-size: 13px;
         }
 
-        .productInfo {
+        .productDetails {
           padding: 7px;
         }
 
-        .productCategory {
+        .productDetails small {
           color: #7935c4;
           font-size: 5px;
         }
 
-        .productInfo h3 {
-          margin: 3px 0;
-          min-height: 18px;
+        .productDetails h3 {
           font-size: 6px;
+          min-height: 18px;
+          margin: 3px 0;
           font-weight: 500;
         }
 
-        .productInfo strong {
+        .productDetails strong {
           display: block;
           font-size: 9px;
           margin-bottom: 6px;
@@ -761,33 +1263,300 @@ export default function Home() {
 
         .selectButton {
           width: 100%;
-          min-height: 27px;
-          border: none;
+          border: 0;
           border-radius: 11px;
           background: #7935c4;
           color: white;
+          padding: 6px;
           font-size: 5px;
           line-height: 1.3;
           font-weight: bold;
+        }
+
+        .comingSoon {
+          text-align: center;
+          background: white;
+          border-radius: 10px;
+          padding: 25px 10px;
+          color: #999;
+          font-size: 8px;
+        }
+
+
+        /* PRODUCT MODAL */
+
+        .modalBackground,
+        .cartBackground {
+          position: fixed;
+          inset: 0;
+          background: #00000070;
+          z-index: 500;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 15px;
+        }
+
+        .modal {
+          width: 100%;
+          max-width: 360px;
+          max-height: 90vh;
+          overflow-y: auto;
+          background: white;
+          border-radius: 18px;
+          padding: 18px;
+          position: relative;
+        }
+
+        .modal > img {
+          width: 100%;
+          height: 230px;
+          object-fit: cover;
+          border-radius: 12px;
+        }
+
+        .close {
+          position: absolute;
+          right: 10px;
+          top: 10px;
+          width: 30px;
+          height: 30px;
+          border: 0;
+          background: white;
+          border-radius: 50%;
+          font-size: 20px;
+        }
+
+        .modal h2 {
+          font-size: 16px;
+          margin: 12px 0 5px;
+        }
+
+        .modal > strong {
+          color: #7935c4;
+        }
+
+        .modal label {
+          display: block;
+          font-size: 8px;
+          font-weight: bold;
+          margin-top: 15px;
+          margin-bottom: 7px;
+        }
+
+        .options {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .option {
+          background: white;
+          border: 1px solid #ddd;
+          border-radius: 15px;
+          padding: 7px 12px;
+          font-size: 7px;
+        }
+
+        .selectedOption {
+          background: #7935c4;
+          color: white;
+          border-color: #7935c4;
+        }
+
+        .addButton,
+        .payButton {
+          width: 100%;
+          border: 0;
+          border-radius: 20px;
+          background: #7935c4;
+          color: white;
+          padding: 12px;
+          margin-top: 18px;
+          font-weight: bold;
+          font-size: 9px;
+        }
+
+
+        /* CART */
+
+        .cartPanel {
+          width: 100%;
+          max-width: 450px;
+          max-height: 94vh;
+          overflow-y: auto;
+          background: #faf7ff;
+          border-radius: 18px;
+          padding: 16px;
+        }
+
+        .cartHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .cartHeader h2 {
+          margin: 0;
+          font-size: 18px;
+        }
+
+        .cartHeader button {
+          border: 0;
+          background: white;
+          border-radius: 50%;
+          width: 30px;
+          height: 30px;
+          font-size: 20px;
+        }
+
+        .emptyCart {
+          text-align: center;
+          padding: 50px 10px;
+          color: #888;
+          font-size: 11px;
+        }
+
+        .cartItem {
+          display: flex;
+          gap: 10px;
+          background: white;
+          padding: 8px;
+          margin-top: 9px;
+          border-radius: 10px;
+        }
+
+        .cartItem img {
+          width: 70px;
+          height: 85px;
+          object-fit: cover;
+          border-radius: 7px;
+        }
+
+        .cartInfo {
+          flex: 1;
+        }
+
+        .cartInfo b,
+        .cartInfo small,
+        .cartInfo strong {
+          display: block;
+        }
+
+        .cartInfo b {
+          font-size: 9px;
+        }
+
+        .cartInfo small {
+          color: #888;
+          font-size: 7px;
+          margin-top: 3px;
+        }
+
+        .cartInfo strong {
+          font-size: 10px;
+          margin-top: 4px;
+        }
+
+        .quantity {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-top: 6px;
+        }
+
+        .quantity button {
+          width: 24px;
+          height: 24px;
+          border: 1px solid #ddd;
+          background: white;
+          border-radius: 50%;
+        }
+
+        .quantity span {
+          font-size: 9px;
+        }
+
+        .remove {
+          border: 0;
+          background: transparent;
+          color: #d33;
+          font-size: 7px;
+          margin-top: 4px;
+        }
+
+
+        /* CHECKOUT */
+
+        .checkout {
+          background: white;
+          margin-top: 15px;
+          border-radius: 12px;
+          padding: 12px;
+        }
+
+        .checkout h3 {
+          font-size: 12px;
+          margin-top: 0;
+        }
+
+        .checkout input,
+        .checkout textarea {
+          width: 100%;
+          border: 1px solid #e2dce8;
+          border-radius: 8px;
+          padding: 9px;
+          margin-bottom: 8px;
+          font-size: 8px;
+          outline: none;
+        }
+
+        .checkout textarea {
+          min-height: 60px;
+          resize: vertical;
+        }
+
+        .total {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 10px;
+          padding-top: 10px;
+          border-top: 1px solid #eee;
+        }
+
+        .total span {
+          font-size: 10px;
+        }
+
+        .total strong {
+          font-size: 13px;
+          color: #7935c4;
+        }
+
+        .payButton:disabled {
+          opacity: .6;
         }
 
 
         /* FOOTER */
 
         footer {
-          background: #171329;
+          background: #17132a;
           color: white;
           text-align: center;
           padding: 22px 10px;
         }
 
-        footer strong {
+        footer b,
+        footer span {
           display: block;
+        }
+
+        footer b {
           font-size: 8px;
         }
 
         footer span {
-          display: block;
           color: #ddd;
           font-size: 6px;
           margin-top: 4px;
@@ -798,64 +1567,41 @@ export default function Home() {
 
         @media (max-width: 600px) {
 
-          .header {
-            height: 54px;
-            padding: 0 13px;
-          }
-
           .hero {
-            min-height: 225px;
-            grid-template-columns: 1fr 132px;
-            padding: 23px 18px;
-            gap: 10px;
+            grid-template-columns: 1fr 135px;
+            padding: 25px 18px;
           }
 
-          .heroContent h1 {
+          .hero h1 {
             font-size: 29px;
           }
 
-          .heroContent p {
-            font-size: 6px;
-            line-height: 1.55;
-          }
-
-          .heroPhoto {
+          .heroImage {
             height: 165px;
           }
 
-          .locationCard {
-            margin-top: 12px;
+          .location {
+            gap: 10px;
           }
 
-          .sectionBanner {
-            height: 100px;
-          }
-
-          .productImage {
-            height: 150px;
-          }
         }
 
 
-        /* TABLET/DESKTOP */
+        /* DESKTOP */
 
         @media (min-width: 700px) {
 
           .hero {
             grid-template-columns: 1fr 260px;
-            padding: 35px 55px;
+            padding: 40px 55px;
           }
 
-          .heroContent h1 {
+          .hero h1 {
             font-size: 55px;
           }
 
-          .heroPhoto {
-            height: 250px;
-          }
-
-          .productGrid {
-            max-width: 500px;
+          .heroImage {
+            height: 260px;
           }
 
           .productImage {
