@@ -1,1046 +1,998 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
 
 type Product = {
-  id: number;
+  id: string;
   name: string;
   category: string;
   price: number;
-  oldPrice: number;
   image: string;
-  rating: number;
+  sizes: string[];
+  colors: string[];
+};
+
+type CartItem = Product & {
+  quantity: number;
+  size: string;
+  color: string;
 };
 
 const products: Product[] = [
   {
-    id: 1,
-    name: "Elegant Violet Kurti",
+    id: "kurti-1",
+    name: "Elegant Cotton Kurti",
     category: "Kurtis",
     price: 799,
-    oldPrice: 1199,
-    image: "/kurti-1.jpg",
-    rating: 4.8,
+    image: "/images/hero.jpg",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: ["Pink", "Blue", "Black"],
   },
   {
-    id: 2,
-    name: "Designer Kurti",
+    id: "kurti-2",
+    name: "Designer Anarkali Kurti",
     category: "Kurtis",
-    price: 899,
-    oldPrice: 1399,
-    image: "/kurti-2.jpg",
-    rating: 4.9,
+    price: 1199,
+    image: "/images/kurti-2.jpg",
+    sizes: ["S", "M", "L", "XL"],
+    colors: ["Maroon", "Purple", "Black"],
   },
   {
-    id: 3,
-    name: "Printed Fashion Kurti",
-    category: "Kurtis",
-    price: 699,
-    oldPrice: 999,
-    image: "/kurti-3.jpg",
-    rating: 4.7,
-  },
-  {
-    id: 4,
-    name: "Premium Party Kurti",
-    category: "Kurtis",
+    id: "saree-1",
+    name: "Beautiful Party Saree",
+    category: "Sarees",
     price: 999,
-    oldPrice: 1499,
-    image: "/kurti-4.jpg",
-    rating: 4.9,
+    image: "/images/saree-1.jpg",
+    sizes: ["Free Size"],
+    colors: ["Pink", "Red", "Green"],
+  },
+  {
+    id: "saree-2",
+    name: "Premium Silk Saree",
+    category: "Sarees",
+    price: 1499,
+    image: "/images/saree-1.jpg",
+    sizes: ["Free Size"],
+    colors: ["Red", "Blue", "Green"],
+  },
+  {
+    id: "lehenga-1",
+    name: "Bridal Lehenga",
+    category: "Lehengas",
+    price: 2499,
+    image: "/images/lehenga-1.jpg",
+    sizes: ["S", "M", "L", "XL"],
+    colors: ["Peach", "Pink", "Red"],
+  },
+  {
+    id: "lehenga-2",
+    name: "Designer Lehenga",
+    category: "Lehengas",
+    price: 1999,
+    image: "/images/lehenga-1.jpg",
+    sizes: ["S", "M", "L", "XL"],
+    colors: ["Peach", "Pink", "Wine"],
+  },
+  {
+    id: "night-1",
+    name: "Comfort Night Suit",
+    category: "Night Wear",
+    price: 699,
+    image: "/images/nightwear-1.jpg",
+    sizes: ["M", "L", "XL", "XXL"],
+    colors: ["Blue", "Pink", "Grey"],
+  },
+  {
+    id: "night-2",
+    name: "Soft Cotton Night Wear",
+    category: "Night Wear",
+    price: 749,
+    image: "/images/nightwear-2.jpg",
+    sizes: ["M", "L", "XL", "XXL"],
+    colors: ["Black", "Blue", "Pink"],
   },
 ];
 
-const categories = [
+const sections = [
   {
-    name: "Kurtis",
-    emoji: "👗",
-    text: "Trendy everyday elegance",
+    category: "Kurtis",
+    title: "Elegant Kurtis",
+    subtitle: "Comfortable styles for everyday elegance",
+    banner: "/images/kurtis-banner.jpg",
   },
   {
-    name: "Sarees",
-    emoji: "🥻",
-    text: "Timeless traditional beauty",
+    category: "Sarees",
+    title: "Graceful Sarees",
+    subtitle: "Traditional beauty with a modern touch",
+    banner: "/images/saree-banner.jpg",
   },
   {
-    name: "Night Wear",
-    emoji: "🌙",
-    text: "Comfort meets style",
+    category: "Lehengas",
+    title: "Designer Lehengas",
+    subtitle: "Perfect for celebrations",
+    banner: "/images/lehenga-banner.jpg",
   },
   {
-    name: "Lehengas",
-    emoji: "💃",
-    text: "Perfect for celebrations",
+    category: "Night Wear",
+    title: "Comfort Night Wear",
+    subtitle: "Relax in comfort and style",
+    banner: "/images/nightwear-banner.jpg",
   },
 ];
 
-export default function Page() {
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [search, setSearch] = useState("");
-  const [wishlist, setWishlist] = useState<number[]>([]);
-  const [cartCount, setCartCount] = useState(0);
+function addCart(product: Product, size: string, color: string) {
+  const raw = localStorage.getItem("bee-girl-shopping-cart");
 
-  const visibleProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesCategory =
-        selectedCategory === "All" ||
-        product.category === selectedCategory;
+  const cart: CartItem[] = raw ? JSON.parse(raw) : [];
 
-      const matchesSearch =
-        product.name.toLowerCase().includes(search.toLowerCase()) ||
-        product.category.toLowerCase().includes(search.toLowerCase());
+  const index = cart.findIndex(
+    (item) =>
+      item.id === product.id &&
+      item.size === size &&
+      item.color === color
+  );
 
-      return matchesCategory && matchesSearch;
+  if (index >= 0) {
+    cart[index].quantity += 1;
+  } else {
+    cart.push({
+      ...product,
+      quantity: 1,
+      size,
+      color,
     });
-  }, [selectedCategory, search]);
+  }
 
-  const selectCategory = (category: string) => {
-    setSelectedCategory(category);
+  localStorage.setItem(
+    "bee-girl-shopping-cart",
+    JSON.stringify(cart)
+  );
 
-    setTimeout(() => {
-      document
-        .getElementById("catalog")
-        ?.scrollIntoView({ behavior: "smooth" });
-    }, 50);
-  };
+  window.dispatchEvent(new Event("cart-updated"));
+}
 
-  const toggleWishlist = (id: number) => {
-    setWishlist((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id]
+export default function HomePage() {
+  const [selected, setSelected] = useState<Product | null>(null);
+  const [size, setSize] = useState("");
+  const [color, setColor] = useState("");
+  const [cartCount, setCartCount] = useState(0);
+  const [category, setCategory] = useState("All");
+
+  const refreshCartCount = () => {
+    const raw = localStorage.getItem("bee-girl-shopping-cart");
+
+    const cart: CartItem[] = raw ? JSON.parse(raw) : [];
+
+    setCartCount(
+      cart.reduce(
+        (total, item) => total + item.quantity,
+        0
+      )
     );
   };
 
-  const addToCart = () => {
-    setCartCount((current) => current + 1);
+  useEffect(() => {
+    refreshCartCount();
+
+    window.addEventListener(
+      "cart-updated",
+      refreshCartCount
+    );
+
+    return () => {
+      window.removeEventListener(
+        "cart-updated",
+        refreshCartCount
+      );
+    };
+  }, []);
+
+  const visibleProducts = useMemo(() => {
+    if (category === "All") {
+      return products;
+    }
+
+    return products.filter(
+      (product) => product.category === category
+    );
+  }, [category]);
+
+  const openProduct = (product: Product) => {
+    setSelected(product);
+    setSize("");
+    setColor("");
+  };
+
+  const confirmAdd = () => {
+    if (!selected || !size || !color) {
+      return;
+    }
+
+    addCart(selected, size, color);
+
+    setSelected(null);
   };
 
   return (
-    <main className="min-h-screen bg-[#fffafc] text-[#3c2330]">
-
-      {/* TOP OFFER BAR */}
-      <div className="bg-[#4b1735] px-4 py-2 text-center text-[11px] font-semibold tracking-[0.12em] text-white sm:text-xs">
-        ✨ WELCOME TO BEE GIRL SHOPPING • TRENDY OUTFITS, TIMELESS ELEGANCE ✨
-      </div>
+    <main className="site">
 
       {/* HEADER */}
-      <header className="sticky top-0 z-50 border-b border-[#ead9df] bg-white/95 shadow-sm backdrop-blur">
 
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-4">
+      <header className="header">
 
-          {/* LOGO */}
-          <Link href="/" className="shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f7e5ee] text-2xl">
-                🐝
-              </div>
+        <Link href="/" className="brand">
+          🌸 <span>Bee Girl Shopping</span>
 
-              <div>
-                <div className="font-serif text-xl font-bold leading-none text-[#4b1735] sm:text-2xl">
-                  Bee Girl
-                </div>
+          <small>
+            Women's Fashion • Kurtis • Sarees • Lehengas
+          </small>
+        </Link>
 
-                <div className="mt-1 text-[8px] font-bold tracking-[0.32em] text-[#b68a3a]">
-                  SHOPPING
-                </div>
-              </div>
-            </div>
-          </Link>
+        <Link href="/cart" className="cartButton">
+          🛒 Cart ({cartCount})
+        </Link>
 
-          {/* SEARCH */}
-          <div className="mx-auto hidden max-w-xl flex-1 md:block">
-            <div className="relative">
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search kurtis, sarees, night wear..."
-                className="w-full rounded-full border border-[#e2cdd6] bg-[#fffafd] px-5 py-3 pr-12 text-sm outline-none focus:border-[#8f315e] focus:ring-2 focus:ring-[#f2dce6]"
+      </header>
+
+
+      {/* HERO */}
+
+      <section className="hero">
+
+        <div className="heroText">
+
+          <div className="eyebrow">
+            ✨ NEW COLLECTION ✨
+          </div>
+
+          <h1>
+            Fashion
+            <br />
+            Made For You
+          </h1>
+
+          <p>
+            Discover beautiful women's fashion for every
+            occasion — from everyday kurtis to elegant
+            sarees, designer lehangas and comfortable
+            night wear.
+          </p>
+
+          <button
+            className="primary"
+            onClick={() => setCategory("All")}
+          >
+            Explore Collection →
+          </button>
+
+        </div>
+
+        <img
+          src="/images/hero.jpg"
+          className="heroImage"
+          alt="Fashion collection"
+        />
+
+      </section>
+
+
+      {/* STORE INFORMATION */}
+
+      <section className="storeInfo">
+
+        <div>
+          📍 <b>Visit Bee Girl Shopping</b>
+        </div>
+
+        <div>
+          Near 7th Cross, Anantapur
+        </div>
+
+        <a
+          href="https://wa.me/919999999999"
+          target="_blank"
+          rel="noreferrer"
+          className="whatsapp"
+        >
+          💬 Chat on WhatsApp
+        </a>
+
+      </section>
+
+
+      {/* CATEGORY BUTTONS */}
+
+      <nav className="categoryNav">
+
+        {[
+          "All",
+          "Kurtis",
+          "Sarees",
+          "Lehengas",
+          "Night Wear",
+        ].map((item) => (
+
+          <button
+            key={item}
+            className={
+              category === item
+                ? "activeChip"
+                : ""
+            }
+            onClick={() => setCategory(item)}
+          >
+            {item}
+          </button>
+
+        ))}
+
+      </nav>
+
+
+      {/* PRODUCT SECTIONS */}
+
+      {sections.map((section) => {
+
+        const sectionProducts =
+          visibleProducts.filter(
+            (product) =>
+              product.category === section.category
+          );
+
+        if (
+          category !== "All" &&
+          category !== section.category
+        ) {
+          return null;
+        }
+
+        return (
+
+          <section
+            className="categorySection"
+            key={section.category}
+          >
+
+            {/* BANNER */}
+
+            <div className="banner">
+
+              <img
+                src={section.banner}
+                alt={section.title}
               />
 
-              <span className="absolute right-5 top-1/2 -translate-y-1/2">
-                🔍
-              </span>
-            </div>
-          </div>
+              <div>
 
-          {/* HEADER ACTIONS */}
-          <div className="ml-auto flex items-center gap-2">
+                <h2>
+                  {section.title}
+                </h2>
+
+                <p>
+                  {section.subtitle}
+                </p>
+
+              </div>
+
+            </div>
+
+
+            {/* SECTION TITLE */}
+
+            <div className="sectionHeading">
+
+              <h2>
+                {section.category}
+              </h2>
+
+              <span>
+                Choose your favorite style
+              </span>
+
+            </div>
+
+
+            {/* PRODUCTS */}
+
+            <div className="products">
+
+              {sectionProducts.map((product) => (
+
+                <article
+                  className="productCard"
+                  key={product.id}
+                >
+
+                  <div className="productImageWrap">
+
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                    />
+
+                    <button className="heart">
+                      ♡
+                    </button>
+
+                  </div>
+
+
+                  <div className="productInfo">
+
+                    <small>
+                      {product.category}
+                    </small>
+
+                    <h3>
+                      {product.name}
+                    </h3>
+
+                    <strong>
+                      ₹{product.price}
+                    </strong>
+
+                    <button
+                      className="selectButton"
+                      onClick={() =>
+                        openProduct(product)
+                      }
+                    >
+                      Select Size &amp; Colour
+                    </button>
+
+                  </div>
+
+                </article>
+
+              ))}
+
+            </div>
+
+          </section>
+
+        );
+
+      })}
+
+
+      {/* SIZE & COLOUR POPUP */}
+
+      {selected && (
+
+        <div
+          className="modalBackdrop"
+          onClick={() => setSelected(null)}
+        >
+
+          <div
+            className="modal"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
 
             <button
-              type="button"
+              className="close"
               onClick={() =>
-                document
-                  .getElementById("wishlist")
-                  ?.scrollIntoView({ behavior: "smooth" })
+                setSelected(null)
               }
-              className="hidden rounded-full border border-[#ead9df] px-4 py-2.5 text-sm font-semibold hover:bg-[#fff4f8] sm:block"
             >
-              ♡ Wishlist
-              {wishlist.length > 0 && (
-                <span className="ml-1 text-[#8f315e]">
-                  {wishlist.length}
-                </span>
-              )}
+              ×
             </button>
 
-            <Link
-              href="/cart"
-              className="rounded-full bg-[#8f315e] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#701f46]"
-            >
-              🛍️ Cart
-              {cartCount > 0 && (
-                <span className="ml-1">({cartCount})</span>
-              )}
-            </Link>
-
-          </div>
-        </div>
-
-        {/* MOBILE SEARCH */}
-        <div className="px-4 pb-3 md:hidden">
-          <div className="relative">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products..."
-              className="w-full rounded-full border border-[#e2cdd6] bg-[#fffafd] px-5 py-3 pr-12 text-sm outline-none focus:border-[#8f315e]"
+            <img
+              src={selected.image}
+              alt={selected.name}
             />
 
-            <span className="absolute right-5 top-1/2 -translate-y-1/2">
-              🔍
-            </span>
-          </div>
-        </div>
+            <h2>
+              {selected.name}
+            </h2>
 
-        {/* NAVIGATION */}
-        <nav className="border-t border-[#f0e2e7]">
-          <div className="mx-auto flex max-w-7xl gap-7 overflow-x-auto px-4 py-3 text-sm font-semibold">
+            <strong>
+              ₹{selected.price}
+            </strong>
 
-            <Link
-              href="/"
-              className="whitespace-nowrap text-[#8f315e]"
-            >
-              Home
-            </Link>
 
-            {["Kurtis", "Sarees", "Night Wear", "Lehengas"].map(
-              (item) => (
+            <label>
+              Size
+            </label>
+
+            <div className="options">
+
+              {selected.sizes.map((item) => (
+
                 <button
                   key={item}
-                  type="button"
-                  onClick={() => selectCategory(item)}
-                  className="whitespace-nowrap hover:text-[#8f315e]"
+                  className={
+                    size === item
+                      ? "chosen"
+                      : ""
+                  }
+                  onClick={() =>
+                    setSize(item)
+                  }
                 >
                   {item}
                 </button>
-              )
-            )}
 
-            <Link href="/cart" className="whitespace-nowrap">
-              Cart
-            </Link>
-
-            <Link href="/checkout" className="whitespace-nowrap">
-              Checkout
-            </Link>
-
-          </div>
-        </nav>
-      </header>
-
-      {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-[#f8e6ee] via-[#f4dce8] to-[#e7d4e5]">
-
-        <div className="absolute left-0 top-0 h-full w-1/2 opacity-30">
-          <div className="absolute left-8 top-12 h-2 w-2 rounded-full bg-[#b68a3a]" />
-          <div className="absolute left-20 top-28 h-3 w-3 rounded-full bg-[#b68a3a]" />
-          <div className="absolute bottom-20 left-12 h-2 w-2 rounded-full bg-[#b68a3a]" />
-        </div>
-
-        <div className="mx-auto grid max-w-7xl items-center lg:grid-cols-2">
-
-          {/* HERO CONTENT */}
-          <div className="order-2 px-6 py-12 sm:px-10 sm:py-16 lg:order-1 lg:py-20">
-
-            <div className="mb-5 flex items-center gap-3">
-              <span className="h-px w-10 bg-[#b68a3a]" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#b68a3a]">
-                Bee Girl Shopping
-              </span>
-            </div>
-
-            <h1 className="font-serif text-5xl font-bold leading-[1] text-[#4b1735] sm:text-6xl lg:text-7xl">
-              Fashion
-              <br />
-              <span className="font-serif italic font-medium text-[#9c6b35]">
-                That Defines You
-              </span>
-            </h1>
-
-            <p className="mt-6 text-base font-medium text-[#684b59] sm:text-lg">
-              Trendy Outfits, Timeless Elegance
-            </p>
-
-            <p className="mt-3 max-w-lg text-sm leading-6 text-[#7a626c]">
-              Discover beautiful fashion collections made for every mood,
-              moment and celebration.
-            </p>
-
-            <div className="mt-7 flex flex-wrap gap-3">
-
-              <button
-                type="button"
-                onClick={() => selectCategory("Kurtis")}
-                className="rounded-none bg-[#8f315e] px-8 py-3.5 text-xs font-bold tracking-[0.14em] text-white shadow-lg transition hover:bg-[#701f46]"
-              >
-                🛍️ SHOP NOW
-              </button>
-
-              <Link
-                href="/cart"
-                className="rounded-none border border-[#8f315e] bg-white/60 px-8 py-3.5 text-xs font-bold tracking-[0.14em] text-[#8f315e] hover:bg-white"
-              >
-                VIEW CART
-              </Link>
+              ))}
 
             </div>
 
-            {/* FEATURE BADGES */}
-            <div className="mt-10 grid grid-cols-2 gap-0 border-y border-[#d7bdc8] sm:grid-cols-4">
 
-              <div className="border-r border-[#d7bdc8] px-3 py-4 text-center">
-                <div className="text-lg">🏅</div>
-                <p className="mt-1 text-[9px] font-bold tracking-[0.12em] text-[#4b1735]">
-                  PREMIUM
-                </p>
-                <p className="text-[9px] tracking-[0.12em] text-[#80636e]">
-                  QUALITY
-                </p>
-              </div>
+            <label>
+              Colour
+            </label>
 
-              <div className="border-r border-[#d7bdc8] px-3 py-4 text-center">
-                <div className="text-lg">🚚</div>
-                <p className="mt-1 text-[9px] font-bold tracking-[0.12em] text-[#4b1735]">
-                  FAST & FREE
-                </p>
-                <p className="text-[9px] tracking-[0.12em] text-[#80636e]">
-                  DELIVERY
-                </p>
-              </div>
+            <div className="options">
 
-              <div className="border-r border-[#d7bdc8] px-3 py-4 text-center">
-                <div className="text-lg">🛡️</div>
-                <p className="mt-1 text-[9px] font-bold tracking-[0.12em] text-[#4b1735]">
-                  SECURE
-                </p>
-                <p className="text-[9px] tracking-[0.12em] text-[#80636e]">
-                  PAYMENT
-                </p>
-              </div>
+              {selected.colors.map((item) => (
 
-              <div className="px-3 py-4 text-center">
-                <div className="text-lg">🎧</div>
-                <p className="mt-1 text-[9px] font-bold tracking-[0.12em] text-[#4b1735]">
-                  CUSTOMER
-                </p>
-                <p className="text-[9px] tracking-[0.12em] text-[#80636e]">
-                  SUPPORT
-                </p>
-              </div>
+                <button
+                  key={item}
+                  className={
+                    color === item
+                      ? "chosen"
+                      : ""
+                  }
+                  onClick={() =>
+                    setColor(item)
+                  }
+                >
+                  {item}
+                </button>
+
+              ))}
 
             </div>
-          </div>
 
-          {/* HERO IMAGE */}
-          <div className="order-1 flex min-h-[430px] items-end justify-center overflow-hidden bg-gradient-to-br from-[#e6d6e7] to-[#cdb9d4] lg:order-2 lg:min-h-[620px]">
-
-            <div className="relative h-full w-full">
-
-              <img
-                src="/hero-violet-kurti.png"
-                alt="Violet kurti fashion collection"
-                className="h-full min-h-[430px] w-full object-cover object-center lg:min-h-[620px]"
-              />
-
-              <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#f8e6ee] to-transparent lg:w-28" />
-
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* STORE INFORMATION STRIP */}
-      <section className="bg-[#4b1735] text-white">
-
-        <div className="mx-auto grid max-w-7xl md:grid-cols-4">
-
-          <a
-            href="https://www.google.com/maps/search/?api=1&query=Sai+Nagar+7th+Cross+Anantapur"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="border-b border-white/10 p-6 transition hover:bg-white/5 md:border-b-0 md:border-r"
-          >
-            <div className="flex gap-4">
-              <div className="text-2xl">📍</div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#e5c17a]">
-                  Our Store
-                </p>
-
-                <p className="mt-2 text-sm font-semibold">
-                  Sai Nagar, 7th Cross
-                </p>
-
-                <p className="text-sm text-white/60">
-                  Anantapur
-                </p>
-              </div>
-            </div>
-          </a>
-
-          <div className="border-b border-white/10 p-6 md:border-b-0 md:border-r">
-            <div className="flex gap-4">
-              <div className="text-2xl">💬</div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#e5c17a]">
-                  WhatsApp Support
-                </p>
-
-                <p className="mt-2 text-sm font-semibold">
-                  Chat with Us
-                </p>
-
-                <p className="text-sm text-white/60">
-                  Number will be added later
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() =>
-              document
-                .getElementById("wishlist")
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
-            className="border-b border-white/10 p-6 text-left transition hover:bg-white/5 md:border-b-0 md:border-r"
-          >
-            <div className="flex gap-4">
-              <div className="text-2xl">♡</div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#e5c17a]">
-                  Wishlist
-                </p>
-
-                <p className="mt-2 text-sm font-semibold">
-                  Save your favourites
-                </p>
-
-                <p className="text-sm text-white/60">
-                  {wishlist.length} saved item
-                  {wishlist.length === 1 ? "" : "s"}
-                </p>
-              </div>
-            </div>
-          </button>
-
-          <Link
-            href="/cart"
-            className="p-6 transition hover:bg-white/5"
-          >
-            <div className="flex gap-4">
-              <div className="text-2xl">🛒</div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#e5c17a]">
-                  Your Cart
-                </p>
-
-                <p className="mt-2 text-sm font-semibold">
-                  {cartCount} item{cartCount === 1 ? "" : "s"}
-                </p>
-
-                <p className="text-sm text-white/60">
-                  View your shopping bag
-                </p>
-              </div>
-            </div>
-          </Link>
-
-        </div>
-      </section>
-
-      {/* CATEGORIES */}
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-
-        <div className="text-center">
-
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#b68a3a]">
-            Explore Our Collections
-          </p>
-
-          <h2 className="mt-3 font-serif text-3xl font-bold text-[#4b1735] sm:text-4xl">
-            Shop By Category
-          </h2>
-
-          <div className="mx-auto mt-4 flex items-center justify-center gap-3">
-            <span className="h-px w-12 bg-[#d4b06b]" />
-            <span className="text-[#b68a3a]">✦</span>
-            <span className="h-px w-12 bg-[#d4b06b]" />
-          </div>
-
-        </div>
-
-        <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
-
-          {categories.map((category) => (
 
             <button
-              key={category.name}
-              type="button"
-              onClick={() => selectCategory(category.name)}
-              className="group border border-[#ead9df] bg-white p-6 text-center shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#c796aa] hover:shadow-xl"
+              className="addButton"
+              disabled={!size || !color}
+              onClick={confirmAdd}
             >
-
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#f9eaf1] text-4xl transition group-hover:scale-110">
-                {category.emoji}
-              </div>
-
-              <h3 className="mt-5 font-serif text-xl font-bold text-[#4b1735]">
-                {category.name}
-              </h3>
-
-              <p className="mt-2 text-xs leading-5 text-[#80636e]">
-                {category.text}
-              </p>
-
-              <p className="mt-4 text-xs font-bold uppercase tracking-wider text-[#8f315e]">
-                Explore →
-              </p>
-
+              Add to Cart
             </button>
 
-          ))}
-
-        </div>
-      </section>
-
-      {/* CATALOG */}
-      <section
-        id="catalog"
-        className="bg-[#fbf1f5] px-4 py-14 sm:px-6 lg:px-8"
-      >
-
-        <div className="mx-auto max-w-7xl">
-
-          <div className="text-center">
-
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#b68a3a]">
-              Bee Girl Collection
-            </p>
-
-            <h2 className="mt-3 font-serif text-3xl font-bold text-[#4b1735] sm:text-4xl">
-              {selectedCategory === "All"
-                ? "Featured Kurtis"
-                : selectedCategory}
-            </h2>
-
           </div>
 
-          {/* FILTERS */}
-          <div className="mt-8 flex gap-2 overflow-x-auto pb-2">
-
-            {[
-              "All",
-              "Kurtis",
-              "Sarees",
-              "Night Wear",
-              "Lehengas",
-            ].map((category) => (
-
-              <button
-                key={category}
-                type="button"
-                onClick={() => setSelectedCategory(category)}
-                className={`whitespace-nowrap border px-5 py-2.5 text-xs font-bold uppercase tracking-wide transition ${
-                  selectedCategory === category
-                    ? "border-[#8f315e] bg-[#8f315e] text-white"
-                    : "border-[#dcc5cf] bg-white text-[#604653] hover:border-[#8f315e]"
-                }`}
-              >
-                {category}
-              </button>
-
-            ))}
-
-          </div>
-
-          {/* PRODUCTS */}
-          <div
-            id="wishlist"
-            className="mt-7 grid grid-cols-2 gap-4 lg:grid-cols-4"
-          >
-
-            {visibleProducts.map((product) => {
-
-              const saved = wishlist.includes(product.id);
-
-              const discount = Math.round(
-                ((product.oldPrice - product.price) /
-                  product.oldPrice) *
-                  100
-              );
-
-              return (
-                <article
-                  key={product.id}
-                  className="overflow-hidden border border-[#ead9df] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                >
-
-                  <div className="relative aspect-[3/4] overflow-hidden bg-[#f4e8ee]">
-
-                    <Link href={`/product/${product.id}`}>
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition duration-500 hover:scale-105"
-                      />
-                    </Link>
-
-                    <span className="absolute left-3 top-3 bg-[#8f315e] px-2.5 py-1 text-[9px] font-bold text-white">
-                      {discount}% OFF
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleWishlist(product.id)}
-                      className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-lg shadow"
-                      aria-label="Wishlist"
-                    >
-                      {saved ? "❤️" : "♡"}
-                    </button>
-
-                  </div>
-
-                  <div className="p-4">
-
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#b68a3a]">
-                      {product.category}
-                    </p>
-
-                    <Link href={`/product/${product.id}`}>
-                      <h3 className="mt-1 truncate font-serif text-base font-bold text-[#4b1735]">
-                        {product.name}
-                      </h3>
-                    </Link>
-
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="font-bold text-[#8f315e]">
-                        ₹{product.price.toLocaleString("en-IN")}
-                      </span>
-
-                      <span className="text-xs text-gray-400 line-through">
-                        ₹{product.oldPrice.toLocaleString("en-IN")}
-                      </span>
-                    </div>
-
-                    <p className="mt-2 text-xs">
-                      ⭐ {product.rating}
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={addToCart}
-                      className="mt-4 w-full bg-[#4b1735] py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition hover:bg-[#8f315e]"
-                    >
-                      Add To Cart
-                    </button>
-
-                  </div>
-                </article>
-              );
-            })}
-
-          </div>
-
-          {visibleProducts.length === 0 && (
-            <div className="mt-8 border border-[#ead9df] bg-white p-12 text-center">
-              <div className="text-4xl">🛍️</div>
-
-              <h3 className="mt-4 font-serif text-xl font-bold text-[#4b1735]">
-                Coming Soon
-              </h3>
-
-              <p className="mt-2 text-sm text-gray-500">
-                Beautiful {selectedCategory.toLowerCase()} collections
-                will be added here.
-              </p>
-            </div>
-          )}
-
         </div>
-      </section>
 
-      {/* COLLECTION BANNERS */}
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      )}
 
-        <div className="grid gap-5 md:grid-cols-3">
-
-          <button
-            type="button"
-            onClick={() => selectCategory("Sarees")}
-            className="bg-gradient-to-br from-[#f5dce7] to-[#e9bdd1] p-7 text-left transition hover:-translate-y-1 hover:shadow-xl"
-          >
-            <div className="text-4xl">🥻</div>
-            <h3 className="mt-4 font-serif text-2xl font-bold text-[#4b1735]">
-              Sarees
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-[#684b59]">
-              Graceful traditional styles for beautiful occasions.
-            </p>
-            <p className="mt-5 text-xs font-bold uppercase tracking-wider text-[#8f315e]">
-              Explore Sarees →
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => selectCategory("Night Wear")}
-            className="bg-gradient-to-br from-[#e6e0f2] to-[#c9bfe2] p-7 text-left transition hover:-translate-y-1 hover:shadow-xl"
-          >
-            <div className="text-4xl">🌙</div>
-            <h3 className="mt-4 font-serif text-2xl font-bold text-[#493d69]">
-              Night Wear
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-[#5d5670]">
-              Soft, comfortable and stylish night collections.
-            </p>
-            <p className="mt-5 text-xs font-bold uppercase tracking-wider text-[#665493]">
-              Explore Night Wear →
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => selectCategory("Lehengas")}
-            className="bg-gradient-to-br from-[#f5e3c0] to-[#e9c887] p-7 text-left transition hover:-translate-y-1 hover:shadow-xl"
-          >
-            <div className="text-4xl">💃</div>
-            <h3 className="mt-4 font-serif text-2xl font-bold text-[#674919]">
-              Lehengas
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-[#66502d]">
-              Celebration-ready styles for your special moments.
-            </p>
-            <p className="mt-5 text-xs font-bold uppercase tracking-wider text-[#89591b]">
-              Explore Lehengas →
-            </p>
-          </button>
-
-        </div>
-      </section>
-
-      {/* WHY BEE GIRL */}
-      <section className="bg-[#4b1735] px-4 py-14 text-white sm:px-6">
-
-        <div className="mx-auto max-w-7xl">
-
-          <div className="text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#e5c17a]">
-              The Bee Girl Promise
-            </p>
-
-            <h2 className="mt-3 font-serif text-3xl font-bold sm:text-4xl">
-              Made For Your Style
-            </h2>
-          </div>
-
-          <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-
-            <div className="text-center">
-              <div className="text-3xl">✨</div>
-              <h3 className="mt-3 font-bold">Premium Quality</h3>
-              <p className="mt-2 text-xs leading-5 text-white/60">
-                Carefully selected fashion collections.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="text-3xl">🚚</div>
-              <h3 className="mt-3 font-bold">Easy Delivery</h3>
-              <p className="mt-2 text-xs leading-5 text-white/60">
-                Convenient doorstep shopping.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="text-3xl">🔐</div>
-              <h3 className="mt-3 font-bold">Secure Payment</h3>
-              <p className="mt-2 text-xs leading-5 text-white/60">
-                Secure checkout will be connected through Razorpay.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="text-3xl">💝</div>
-              <h3 className="mt-3 font-bold">Customer Support</h3>
-              <p className="mt-2 text-xs leading-5 text-white/60">
-                Support details can be added when your WhatsApp number is ready.
-              </p>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* STORE + OWNER */}
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-
-        <div className="grid gap-5 md:grid-cols-3">
-
-          <a
-            href="https://www.google.com/maps/search/?api=1&query=Sai+Nagar+7th+Cross+Anantapur"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="border border-[#ead9df] bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-          >
-            <div className="text-3xl">📍</div>
-
-            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[#b68a3a]">
-              Our Store
-            </p>
-
-            <h3 className="mt-2 font-serif text-xl font-bold text-[#4b1735]">
-              Bee Girl Shopping
-            </h3>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Sai Nagar, 7th Cross
-              <br />
-              Anantapur
-            </p>
-
-            <p className="mt-4 text-xs font-bold text-[#8f315e]">
-              Open Location →
-            </p>
-          </a>
-
-          <div className="border border-[#ead9df] bg-[#f5fff8] p-7 shadow-sm">
-            <div className="text-3xl">💬</div>
-
-            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[#279653]">
-              WhatsApp Support
-            </p>
-
-            <h3 className="mt-2 font-serif text-xl font-bold text-[#244e35]">
-              Chat With Us
-            </h3>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Your WhatsApp support number is intentionally left empty
-              until you provide the business number.
-            </p>
-
-            <span className="mt-4 inline-block rounded-full bg-white px-4 py-2 text-xs font-bold text-[#279653]">
-              Number pending
-            </span>
-          </div>
-
-          <Link
-            href="/admin"
-            className="border border-[#ead9df] bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-          >
-            <div className="text-3xl">👑</div>
-
-            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[#b68a3a]">
-              Store Owner
-            </p>
-
-            <h3 className="mt-2 font-serif text-xl font-bold text-[#4b1735]">
-              Owner / Admin
-            </h3>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Manage products, orders and store operations from your
-              administration area.
-            </p>
-
-            <p className="mt-4 text-xs font-bold text-[#8f315e]">
-              Open Admin →
-            </p>
-          </Link>
-
-        </div>
-      </section>
-
-      {/* CART / CHECKOUT ACTIONS */}
-      <section className="bg-[#fbf1f5] px-4 py-12">
-
-        <div className="mx-auto grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
-          <Link
-            href="/cart"
-            className="border border-[#ead9df] bg-white p-6 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-          >
-            <div className="text-3xl">🛒</div>
-            <h3 className="mt-3 font-serif text-xl font-bold text-[#4b1735]">
-              My Cart
-            </h3>
-            <p className="mt-2 text-xs text-gray-500">
-              Review and manage your selected products.
-            </p>
-          </Link>
-
-          <Link
-            href="/checkout"
-            className="bg-[#8f315e] p-6 text-center text-white shadow-sm transition hover:-translate-y-1 hover:bg-[#701f46] hover:shadow-lg"
-          >
-            <div className="text-3xl">💳</div>
-            <h3 className="mt-3 font-serif text-xl font-bold">
-              Checkout
-            </h3>
-            <p className="mt-2 text-xs text-white/70">
-              Continue to secure checkout and payment.
-            </p>
-          </Link>
-
-          <Link
-            href="/admin"
-            className="border border-[#ead9df] bg-white p-6 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-          >
-            <div className="text-3xl">⚙️</div>
-            <h3 className="mt-3 font-serif text-xl font-bold text-[#4b1735]">
-              Owner Dashboard
-            </h3>
-            <p className="mt-2 text-xs text-gray-500">
-              Store management and order controls.
-            </p>
-          </Link>
-
-        </div>
-      </section>
 
       {/* FOOTER */}
-      <footer className="bg-[#211018] px-4 py-12 text-white sm:px-6 lg:px-8">
 
-        <div className="mx-auto max-w-7xl">
+      <footer>
 
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <b>
+          Bee Girl Shopping
+        </b>
 
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="text-3xl">🐝</div>
+        <span>
+          Beautiful fashion. Comfortable prices.
+        </span>
 
-                <div>
-                  <h2 className="font-serif text-2xl font-bold text-[#e5c17a]">
-                    Bee Girl
-                  </h2>
-
-                  <p className="text-[8px] tracking-[0.3em] text-white/50">
-                    SHOPPING
-                  </p>
-                </div>
-              </div>
-
-              <p className="mt-5 text-sm leading-6 text-white/55">
-                Trendy outfits, timeless elegance and fashion made for
-                your beautiful moments.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-bold">Shop</h3>
-
-              <div className="mt-4 space-y-3 text-sm text-white/60">
-                {["Kurtis", "Sarees", "Night Wear", "Lehengas"].map(
-                  (item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => selectCategory(item)}
-                      className="block hover:text-white"
-                    >
-                      {item}
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-bold">Customer Care</h3>
-
-              <div className="mt-4 space-y-3 text-sm text-white/60">
-                <Link href="/cart" className="block hover:text-white">
-                  My Cart
-                </Link>
-
-                <Link
-                  href="/checkout"
-                  className="block hover:text-white"
-                >
-                  Checkout
-                </Link>
-
-                <Link
-                  href="/admin"
-                  className="block hover:text-white"
-                >
-                  Owner / Admin
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-bold">Visit Us</h3>
-
-              <div className="mt-4 space-y-3 text-sm text-white/60">
-                <p>📍 Sai Nagar, 7th Cross</p>
-                <p>Anantapur</p>
-                <p>💬 WhatsApp Support</p>
-                <p>🔐 Secure Checkout</p>
-              </div>
-            </div>
-
-          </div>
-
-          <div className="mt-10 border-t border-white/10 pt-6 text-center text-xs text-white/35">
-            © {new Date().getFullYear()} Bee Girl Shopping. All rights reserved.
-          </div>
-
-        </div>
       </footer>
 
-      {/* FLOATING LOCATION - LEFT */}
-      <a
-        href="https://www.google.com/maps/search/?api=1&query=Sai+Nagar+7th+Cross+Anantapur"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-5 left-4 z-50 flex items-center gap-2 rounded-full bg-[#4b1735] px-4 py-3 text-xs font-bold text-white shadow-xl transition hover:bg-[#8f315e]"
-      >
-        📍
-        <span>Location</span>
-      </a>
 
-      {/* FLOATING WHATSAPP - LEFT */}
-      <div
-        className="fixed left-0 top-1/2 z-40 flex -translate-y-1/2 items-center gap-2 rounded-r-full bg-[#25d366] px-3 py-3 text-xs font-bold text-white shadow-xl"
-        aria-label="WhatsApp support"
-      >
-        💬
-        <span className="hidden sm:inline">
-          WhatsApp
-        </span>
-      </div>
+      {/* CSS */}
+
+      <style jsx>{`
+
+        * {
+          box-sizing: border-box;
+        }
+
+        .site {
+          min-height: 100vh;
+          background: #f8f3ff;
+          color: #27202f;
+          font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .header {
+          height: 58px;
+          background: white;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 18px;
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          box-shadow: 0 1px 8px #00000012;
+        }
+
+        .brand {
+          color: #5423a5;
+          text-decoration: none;
+          font-weight: 800;
+          font-size: 13px;
+        }
+
+        .brand small {
+          display: block;
+          color: #777;
+          font-size: 7px;
+          font-weight: 500;
+          margin-left: 18px;
+        }
+
+        .cartButton,
+        .primary,
+        .selectButton,
+        .addButton {
+          border: 0;
+          border-radius: 20px;
+          background: #7532c8;
+          color: white;
+          font-weight: 700;
+          cursor: pointer;
+          text-decoration: none;
+        }
+
+        .cartButton {
+          padding: 8px 14px;
+          font-size: 11px;
+        }
+
+        .hero {
+          max-width: 900px;
+          margin: 0 auto;
+          padding: 28px 22px;
+          display: grid;
+          grid-template-columns: 1fr 160px;
+          gap: 24px;
+          align-items: center;
+          background: linear-gradient(
+            110deg,
+            #f8ecff,
+            #f1e6ff
+          );
+        }
+
+        .eyebrow {
+          color: #7532c8;
+          font-size: 8px;
+          font-weight: 800;
+          letter-spacing: 2px;
+        }
+
+        .hero h1 {
+          font-size: clamp(34px, 7vw, 52px);
+          line-height: .95;
+          margin: 10px 0;
+          font-weight: 500;
+        }
+
+        .hero p {
+          font-size: 11px;
+          color: #777;
+          line-height: 1.6;
+          max-width: 430px;
+        }
+
+        .primary {
+          padding: 9px 15px;
+          font-size: 9px;
+        }
+
+        .heroImage {
+          width: 160px;
+          height: 175px;
+          object-fit: cover;
+          border-radius: 15px;
+        }
+
+        .storeInfo {
+          background: white;
+          max-width: 640px;
+          margin: 12px auto;
+          border-radius: 12px;
+          padding: 12px;
+          text-align: center;
+          box-shadow: 0 4px 15px #0000000d;
+          font-size: 8px;
+        }
+
+        .whatsapp {
+          display: inline-block;
+          background: #27c968;
+          color: white;
+          padding: 6px 12px;
+          border-radius: 20px;
+          text-decoration: none;
+          margin-top: 5px;
+          font-weight: 700;
+        }
+
+        .categoryNav {
+          display: flex;
+          gap: 8px;
+          justify-content: center;
+          flex-wrap: wrap;
+          padding: 12px;
+        }
+
+        .categoryNav button {
+          border: 0;
+          background: white;
+          padding: 7px 13px;
+          border-radius: 20px;
+          font-size: 8px;
+          box-shadow: 0 2px 7px #0000000b;
+          cursor: pointer;
+        }
+
+        .categoryNav .activeChip {
+          background: #7532c8;
+          color: white;
+        }
+
+        .categorySection {
+          max-width: 900px;
+          margin: 10px auto 30px;
+          padding: 0 18px;
+        }
+
+        .banner {
+          height: 115px;
+          position: relative;
+          overflow: hidden;
+          border-radius: 12px;
+          color: white;
+        }
+
+        .banner img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          filter: brightness(.65);
+        }
+
+        .banner > div {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .banner h2 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 500;
+        }
+
+        .banner p {
+          margin: 5px 0;
+          font-size: 8px;
+        }
+
+        .sectionHeading {
+          text-align: center;
+          margin: 17px 0 13px;
+        }
+
+        .sectionHeading h2 {
+          font-size: 14px;
+          font-weight: 500;
+          margin: 0 0 4px;
+        }
+
+        .sectionHeading span {
+          font-size: 8px;
+          color: #888;
+        }
+
+        .products {
+          display: grid;
+          grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          max-width: 360px;
+          margin: auto;
+        }
+
+        .productCard {
+          background: white;
+          border-radius: 10px;
+          overflow: hidden;
+          box-shadow: 0 3px 12px #00000012;
+        }
+
+        .productImageWrap {
+          height: 165px;
+          position: relative;
+          background: #fafafa;
+        }
+
+        .productImageWrap img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .heart {
+          position: absolute;
+          right: 5px;
+          top: 5px;
+          width: 20px;
+          height: 20px;
+          border: 0;
+          border-radius: 50%;
+          background: white;
+          cursor: pointer;
+        }
+
+        .productInfo {
+          padding: 8px;
+        }
+
+        .productInfo small {
+          font-size: 7px;
+          color: #7532c8;
+        }
+
+        .productInfo h3 {
+          font-size: 8px;
+          min-height: 18px;
+          margin: 3px 0;
+          font-weight: 600;
+        }
+
+        .productInfo strong {
+          display: block;
+          font-size: 10px;
+          color: #333;
+          margin-bottom: 7px;
+        }
+
+        .selectButton {
+          width: 100%;
+          padding: 7px 3px;
+          font-size: 7px;
+        }
+
+        .modalBackdrop {
+          position: fixed;
+          inset: 0;
+          background: #0008;
+          z-index: 50;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .modal {
+          width: min(380px, 100%);
+          background: white;
+          border-radius: 18px;
+          padding: 18px;
+          position: relative;
+        }
+
+        .modal > img {
+          width: 100%;
+          height: 190px;
+          object-fit: cover;
+          border-radius: 12px;
+        }
+
+        .modal h2 {
+          font-size: 17px;
+          margin: 12px 0 4px;
+        }
+
+        .modal > strong {
+          color: #7532c8;
+        }
+
+        .close {
+          position: absolute;
+          right: 27px;
+          top: 27px;
+          border: 0;
+          border-radius: 50%;
+          width: 28px;
+          height: 28px;
+          background: white;
+          font-size: 20px;
+          cursor: pointer;
+        }
+
+        .modal label {
+          display: block;
+          margin-top: 14px;
+          font-size: 10px;
+          font-weight: 700;
+        }
+
+        .options {
+          display: flex;
+          gap: 7px;
+          flex-wrap: wrap;
+          margin-top: 7px;
+        }
+
+        .options button {
+          border: 1px solid #ddd;
+          background: white;
+          padding: 7px 11px;
+          border-radius: 15px;
+          font-size: 9px;
+          cursor: pointer;
+        }
+
+        .options .chosen {
+          background: #7532c8;
+          color: white;
+          border-color: #7532c8;
+        }
+
+        .addButton {
+          width: 100%;
+          padding: 11px;
+          margin-top: 18px;
+        }
+
+        .addButton:disabled {
+          opacity: .45;
+          cursor: not-allowed;
+        }
+
+        footer {
+          background: #25152e;
+          color: white;
+          padding: 25px;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          font-size: 10px;
+        }
+
+        footer span {
+          opacity: .7;
+          font-size: 8px;
+        }
+
+        @media (min-width: 700px) {
+
+          .products {
+            max-width: 600px;
+            grid-template-columns:
+              repeat(4, 1fr);
+          }
+
+          .productImageWrap {
+            height: 210px;
+          }
+
+        }
+
+        @media (max-width: 520px) {
+
+          .hero {
+            grid-template-columns: 1fr 135px;
+            gap: 12px;
+            padding: 28px 18px;
+          }
+
+          .heroImage {
+            width: 135px;
+            height: 172px;
+          }
+
+        }
+
+      `}</style>
 
     </main>
   );
