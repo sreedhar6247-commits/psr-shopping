@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Product = {
   id: number;
@@ -100,27 +100,64 @@ const categories = [
     name: "Kurtis",
     title: "Elegant Kurtis",
     subtitle: "Everyday style with beautiful designs",
-    image: products[0].image,
   },
   {
     name: "Sarees",
     title: "Graceful Sarees",
     subtitle: "Traditional beauty with a modern touch",
-    image: products[2].image,
   },
   {
     name: "Lehengas",
     title: "Designer Lehengas",
     subtitle: "Perfect for celebrations",
-    image: products[4].image,
   },
   {
     name: "Night Wear",
     title: "Comfort Night Wear",
     subtitle: "Relax in comfort and style",
-    image: products[6].image,
   },
 ];
+
+function ProductImage({
+  src,
+  alt,
+  category,
+  className,
+}: {
+  src: string;
+  alt: string;
+  category: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [src]);
+
+  if (failed) {
+    return (
+      <div
+        className={`${className || ""} imageFallback`}
+        role="img"
+        aria-label={alt}
+      >
+        <span>🌸</span>
+        <strong>{category}</strong>
+        <small>Image temporarily unavailable</small>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      className={className}
+      src={src}
+      alt={alt}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export default function Home() {
   const [selected, setSelected] = useState<Product | null>(null);
@@ -130,34 +167,51 @@ export default function Home() {
   const [cartCount, setCartCount] = useState(0);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
+  const refreshCounts = () => {
     try {
       const cart = JSON.parse(
         localStorage.getItem("bee-girl-shopping-cart") || "[]"
-      );
-
-      setCartCount(
-        cart.reduce(
-          (total: number, item: any) =>
-            total + Number(item.quantity || 1),
-          0
-        )
       );
 
       const wish = JSON.parse(
         localStorage.getItem("bee-girl-wishlist") || "[]"
       );
 
-      setWishlist(wish);
-    } catch {}
+      setCartCount(
+        Array.isArray(cart)
+          ? cart.reduce(
+              (sum: number, item: any) =>
+                sum + Number(item.quantity || 1),
+              0
+            )
+          : 0
+      );
+
+      setWishlist(Array.isArray(wish) ? wish : []);
+    } catch {
+      setCartCount(0);
+      setWishlist([]);
+    }
+  };
+
+  useEffect(() => {
+    refreshCounts();
+
+    window.addEventListener("cart-updated", refreshCounts);
+    window.addEventListener("wishlist-updated", refreshCounts);
+    window.addEventListener("storage", refreshCounts);
+
+    return () => {
+      window.removeEventListener("cart-updated", refreshCounts);
+      window.removeEventListener("wishlist-updated", refreshCounts);
+      window.removeEventListener("storage", refreshCounts);
+    };
   }, []);
 
-  function openProduct(product: Product) {
-    setSelected(product);
-    setSize("");
-    setColour("");
-    setMessage("");
-  }
+  const wishlistProducts = useMemo(
+    () => products.filter((product) => wishlist.includes(product.id)),
+    [wishlist]
+  );
 
   function toggleWishlist(id: number) {
     const updated = wishlist.includes(id)
@@ -170,6 +224,15 @@ export default function Home() {
       "bee-girl-wishlist",
       JSON.stringify(updated)
     );
+
+    window.dispatchEvent(new Event("wishlist-updated"));
+  }
+
+  function openProduct(product: Product) {
+    setSelected(product);
+    setSize(product.sizes.length === 1 ? product.sizes[0] : "");
+    setColour("");
+    setMessage("");
   }
 
   function addToCart() {
@@ -188,9 +251,11 @@ export default function Home() {
     let cart: any[] = [];
 
     try {
-      cart = JSON.parse(
+      const saved = JSON.parse(
         localStorage.getItem("bee-girl-shopping-cart") || "[]"
       );
+
+      cart = Array.isArray(saved) ? saved : [];
     } catch {
       cart = [];
     }
@@ -203,12 +268,14 @@ export default function Home() {
     );
 
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity = Number(existing.quantity || 0) + 1;
     } else {
       cart.push({
         id: selected.id,
         name: selected.name,
+        category: selected.category,
         price: selected.price,
+        image: selected.image,
         size,
         color: colour,
         quantity: 1,
@@ -220,23 +287,22 @@ export default function Home() {
       JSON.stringify(cart)
     );
 
-    setCartCount(
-      cart.reduce(
-        (total, item) => total + Number(item.quantity || 1),
-        0
-      )
-    );
+    window.dispatchEvent(new Event("cart-updated"));
 
     setSelected(null);
   }
 
   function showCategory(category: string) {
-    const element = document.getElementById(category);
-    element?.scrollIntoView({ behavior: "smooth" });
+    document
+      .getElementById(category)
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
   }
 
   return (
-    <main>
+    <main className="home">
       <style jsx global>{`
         * {
           box-sizing: border-box;
@@ -248,165 +314,282 @@ export default function Home() {
 
         body {
           margin: 0;
+          background: #fbf7fa;
+          color: #281a23;
           font-family: Arial, Helvetica, sans-serif;
-          background: #f8f5ff;
-          color: #18182b;
         }
 
         button {
           font-family: inherit;
         }
 
+        .topBar {
+          background: #3b1729;
+          color: #fff;
+          padding: 8px 5%;
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          letter-spacing: 0.04em;
+        }
+
         .header {
           position: sticky;
           top: 0;
           z-index: 50;
-          background: rgba(255,255,255,.96);
+          background: rgba(255, 255, 255, 0.97);
           backdrop-filter: blur(12px);
-          display: flex;
-          justify-content: space-between;
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
           align-items: center;
-          padding: 14px 5%;
-          box-shadow: 0 3px 18px rgba(0,0,0,.08);
+          gap: 16px;
+          padding: 13px 5%;
+          box-shadow: 0 3px 18px rgba(59, 23, 41, 0.1);
+        }
+
+        .headerSide {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+        }
+
+        .headerLeft {
+          justify-content: flex-start;
+        }
+
+        .headerRight {
+          justify-content: flex-end;
+        }
+
+        .brandBlock {
+          text-align: center;
         }
 
         .brand {
-          color: #7137c8;
-          font-size: 23px;
-          font-weight: 800;
+          color: #691d45;
+          font: 800 24px Georgia, serif;
         }
 
         .tag {
-          color: #777;
-          font-size: 12px;
+          color: #87747d;
+          font-size: 11px;
           margin-top: 3px;
         }
 
-        .cartButton {
+        .headerButton {
           border: 0;
-          background: #7137c8;
-          color: white;
-          padding: 12px 20px;
-          border-radius: 30px;
-          font-weight: bold;
+          padding: 10px 14px;
+          border-radius: 25px;
+          font-weight: 800;
+          font-size: 12px;
           cursor: pointer;
+          text-decoration: none;
+          white-space: nowrap;
         }
 
-        .hero {
-          min-height: 550px;
-          padding: 80px 6%;
-          display: grid;
-          grid-template-columns: 1.1fr .9fr;
-          gap: 40px;
-          align-items: center;
-          background:
-            radial-gradient(circle at 15% 20%, #ead9ff, transparent 35%),
-            linear-gradient(135deg,#faf6ff,#eee5ff);
+        .wishlistButton,
+        .cartButton {
+          color: #fff;
         }
 
-        .heroText small {
-          color: #7137c8;
-          font-weight: bold;
-          letter-spacing: 3px;
+        .wishlistButton {
+          background: #9b5274;
         }
 
-        .hero h1 {
-          font-size: clamp(45px,7vw,78px);
-          line-height: 1.02;
-          margin: 18px 0;
+        .cartButton {
+          background: #691d45;
         }
 
-        .hero p {
-          color: #666;
-          font-size: 18px;
+        .locationButton {
+          background: #b17b27;
+          color: #fff;
+        }
+
+        .whatsappHeader {
+          background: #f4f0f2;
+          color: #691d45;
+          border: 1px solid #dbcbd3;
+          cursor: default;
+        }
+
+        .heroHeader {
+          width: 100%;
+          background: #f3e4ea;
+          line-height: 0;
+        }
+
+        .heroHeader img {
+          width: 100%;
+          height: auto;
+          display: block;
+          max-height: 760px;
+          object-fit: cover;
+        }
+
+        .intro {
+          padding: 48px 20px 34px;
+          text-align: center;
+          background: linear-gradient(135deg, #fffafc, #f4e8ef);
+        }
+
+        .eyebrow {
+          color: #b17b27;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.28em;
+        }
+
+        .intro h1 {
+          font: 700 clamp(34px, 5vw, 56px) Georgia, serif;
+          color: #5a183c;
+          margin: 10px 0;
+        }
+
+        .intro p {
+          max-width: 760px;
+          margin: 0 auto 20px;
+          color: #76666e;
           line-height: 1.7;
+          font-size: 15px;
         }
 
         .shopButton {
           display: inline-block;
-          margin-top: 15px;
-          background: #7137c8;
-          color: white;
-          padding: 15px 28px;
-          border-radius: 30px;
+          background: #691d45;
+          color: #fff;
+          padding: 13px 23px;
+          border-radius: 28px;
           text-decoration: none;
-          font-weight: bold;
+          font-weight: 800;
+          font-size: 12px;
         }
 
-        .heroImage {
-          width: 100%;
-          height: 470px;
-          object-fit: cover;
-          border-radius: 35px;
-          box-shadow: 0 20px 50px rgba(70,30,120,.2);
+        .quickInfo {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 18px 5%;
+          background: #4b1933;
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          gap: 12px;
         }
 
-        .location {
-          margin: 30px 5%;
-          padding: 25px;
-          background: white;
-          border-radius: 25px;
-          text-align: center;
-          box-shadow: 0 8px 30px rgba(0,0,0,.08);
-        }
-
-        .whatsapp {
-          display: inline-block;
-          background: #20c96b;
-          color: white;
+        .quickCard {
+          min-height: 72px;
+          padding: 13px 15px;
+          border: 1px solid rgba(229, 193, 122, 0.5);
+          border-radius: 14px;
+          color: #fff;
           text-decoration: none;
-          padding: 12px 22px;
-          border-radius: 25px;
-          font-weight: bold;
+          background: rgba(255, 255, 255, 0.04);
+          display: flex;
+          align-items: center;
+          gap: 11px;
+        }
+
+        .quickCard strong {
+          display: block;
+          font-size: 13px;
+        }
+
+        .quickCard span {
+          display: block;
+          color: #eadce2;
+          font-size: 10px;
+          line-height: 1.35;
+          margin-top: 3px;
+        }
+
+        .quickIcon {
+          font-size: 25px;
+          flex: 0 0 auto;
         }
 
         .categoryNav {
           display: flex;
           justify-content: center;
           flex-wrap: wrap;
-          gap: 12px;
-          padding: 25px 5%;
+          gap: 10px;
+          padding: 24px 5%;
         }
 
         .categoryNav button {
-          border: 0;
-          background: white;
-          padding: 12px 22px;
+          border: 1px solid #dfcbd4;
+          background: #fff;
+          color: #641c42;
+          padding: 11px 20px;
           border-radius: 25px;
           cursor: pointer;
-          box-shadow: 0 3px 12px rgba(0,0,0,.08);
+          box-shadow: 0 3px 12px rgba(59, 23, 41, 0.06);
         }
 
         .section {
-          padding: 55px 5%;
+          padding: 45px 5%;
+          scroll-margin-top: 100px;
+        }
+
+        .categoryBanner {
+          min-height: 260px;
+          margin-bottom: 22px;
+          border-radius: 28px;
+          overflow: hidden;
+          position: relative;
+          background: #eee0e7;
+        }
+
+        .categoryBannerImage {
+          width: 100%;
+          height: 280px;
+          object-fit: cover;
+          display: block;
+          filter: brightness(0.68);
+        }
+
+        .bannerText {
+          position: absolute;
+          left: 34px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #fff;
+        }
+
+        .bannerText h2 {
+          font: 700 38px Georgia, serif;
+          margin: 0 0 8px;
+        }
+
+        .bannerText p {
+          margin: 0;
+          font-size: 14px;
         }
 
         .sectionHead {
           text-align: center;
-          margin-bottom: 25px;
+          margin-bottom: 24px;
         }
 
         .sectionHead h2 {
-          font-size: 34px;
+          font: 700 34px Georgia, serif;
+          color: #4d1934;
           margin: 8px 0;
         }
 
         .sectionHead p {
-          color: #777;
+          color: #82727a;
         }
 
         .productGrid {
           display: grid;
-          grid-template-columns: repeat(4,1fr);
-          gap: 20px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 18px;
         }
 
         .card {
-          background: white;
-          border-radius: 22px;
+          background: #fff;
+          border-radius: 18px;
           overflow: hidden;
           position: relative;
-          box-shadow: 0 8px 25px rgba(0,0,0,.08);
+          box-shadow: 0 8px 25px rgba(59, 23, 41, 0.08);
         }
 
         .productImage {
@@ -414,6 +597,33 @@ export default function Home() {
           height: 330px;
           object-fit: cover;
           display: block;
+          background: #f4e9ee;
+        }
+
+        .imageFallback {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          color: #6b2a4c;
+          background: linear-gradient(135deg, #f8edf2, #eee0e9);
+          padding: 20px;
+        }
+
+        .imageFallback span {
+          font-size: 34px;
+        }
+
+        .imageFallback strong {
+          margin-top: 8px;
+          font: 700 18px Georgia, serif;
+        }
+
+        .imageFallback small {
+          margin-top: 5px;
+          color: #89757f;
+          font-size: 10px;
         }
 
         .heart {
@@ -424,106 +634,109 @@ export default function Home() {
           height: 42px;
           border: 0;
           border-radius: 50%;
-          background: white;
+          background: #fff;
           font-size: 22px;
           cursor: pointer;
+          box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
         }
 
         .cardBody {
-          padding: 16px;
+          padding: 15px;
         }
 
         .categoryName {
-          color: #7137c8;
-          font-size: 13px;
-          font-weight: bold;
+          color: #9b5274;
+          font-size: 12px;
+          font-weight: 800;
         }
 
         .cardBody h3 {
-          margin: 8px 0;
+          margin: 7px 0;
+          min-height: 38px;
+          font-size: 16px;
         }
 
         .price {
-          color: #7137c8;
-          font-size: 20px;
-          font-weight: bold;
-          margin-bottom: 14px;
+          color: #691d45;
+          font-size: 19px;
+          font-weight: 800;
+          margin-bottom: 12px;
         }
 
         .selectButton {
           width: 100%;
           border: 0;
-          background: #7137c8;
-          color: white;
-          padding: 13px;
-          border-radius: 25px;
-          font-weight: bold;
+          background: #691d45;
+          color: #fff;
+          padding: 12px;
+          border-radius: 24px;
+          font-weight: 800;
           cursor: pointer;
         }
 
-        .categoryBanner {
-          min-height: 280px;
-          margin-bottom: 20px;
-          border-radius: 30px;
-          overflow: hidden;
-          position: relative;
+        .wishlistSection {
+          background: #fff;
+          border-top: 1px solid #eddde4;
+          border-bottom: 1px solid #eddde4;
         }
 
-        .categoryBanner img {
-          width: 100%;
-          height: 280px;
-          object-fit: cover;
-          display: block;
-          filter: brightness(.65);
-        }
-
-        .bannerText {
-          position: absolute;
-          left: 35px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: white;
-        }
-
-        .bannerText h2 {
-          font-size: 38px;
-          margin: 0 0 8px;
+        .wishlistEmpty {
+          text-align: center;
+          padding: 20px;
+          color: #7e6f76;
         }
 
         .footer {
-          margin-top: 50px;
-          background: #17152b;
-          color: white;
-          padding: 45px 20px;
+          margin-top: 35px;
+          background: #24101a;
+          color: #fff;
           text-align: center;
+          padding: 40px 20px;
+        }
+
+        .footer h2 {
+          font: 700 28px Georgia, serif;
+          color: #e5c17a;
+          margin: 0 0 7px;
+        }
+
+        .footer p {
+          margin: 6px;
+          color: #cdbbc4;
+          font-size: 11px;
         }
 
         .modalBackground {
           position: fixed;
           inset: 0;
           z-index: 100;
-          background: rgba(0,0,0,.65);
+          background: rgba(25, 15, 20, 0.7);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px;
+          padding: 18px;
         }
 
         .modal {
-          background: white;
+          background: #fff;
           width: 100%;
           max-width: 500px;
-          max-height: 90vh;
+          max-height: 92vh;
           overflow-y: auto;
-          border-radius: 25px;
-          padding: 20px;
+          border-radius: 24px;
+          padding: 18px;
         }
 
         .modalImage {
           width: 100%;
           height: 280px;
           object-fit: cover;
-          border-radius: 18px;
+          border-radius: 16px;
+          background: #f4e9ee;
+        }
+
+        .modal h2 {
+          color: #4d1934;
         }
 
         .options {
@@ -533,87 +746,122 @@ export default function Home() {
         }
 
         .option {
-          border: 1px solid #ccc;
-          background: white;
+          border: 1px solid #d8c5ce;
+          background: #fff;
           padding: 10px 17px;
           border-radius: 20px;
           cursor: pointer;
         }
 
         .option.selected {
-          background: #7137c8;
-          color: white;
-          border-color: #7137c8;
+          background: #691d45;
+          color: #fff;
+          border-color: #691d45;
         }
 
-        .addButton {
-          width: 100%;
-          border: 0;
-          background: #7137c8;
-          color: white;
-          padding: 15px;
-          margin-top: 20px;
-          border-radius: 25px;
-          font-weight: bold;
-          cursor: pointer;
-        }
-
+        .addButton,
         .closeButton {
           width: 100%;
           border: 0;
-          background: #eee;
-          padding: 12px;
-          margin-top: 8px;
+          padding: 13px;
           border-radius: 25px;
           cursor: pointer;
         }
 
-        .error {
-          color: #d00000;
-          text-align: center;
-          font-weight: bold;
-          margin-top: 12px;
+        .addButton {
+          background: #691d45;
+          color: #fff;
+          font-weight: 800;
+          margin-top: 18px;
         }
 
-        @media(max-width:900px) {
-          .hero {
+        .closeButton {
+          background: #eee7eb;
+          color: #3a2530;
+          margin-top: 8px;
+        }
+
+        .error {
+          color: #bd0025;
+          text-align: center;
+          font-weight: 800;
+          margin-top: 10px;
+        }
+
+        @media (max-width: 900px) {
+          .header {
             grid-template-columns: 1fr;
-            text-align: center;
+            justify-items: center;
           }
 
-          .heroImage {
-            height: 380px;
+          .headerLeft,
+          .headerRight {
+            justify-content: center;
+            flex-wrap: wrap;
+          }
+
+          .brandBlock {
+            order: -1;
+          }
+
+          .quickInfo {
+            grid-template-columns: 1fr 1fr;
           }
 
           .productGrid {
-            grid-template-columns: repeat(2,1fr);
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .heroHeader img {
+            max-height: none;
           }
         }
 
-        @media(max-width:550px) {
-          .header {
-            padding: 12px 4%;
+        @media (max-width: 560px) {
+          .topBar {
+            justify-content: center;
+          }
+
+          .topBar span:last-child {
+            display: none;
+          }
+
+          .headerButton {
+            padding: 9px 10px;
+            font-size: 11px;
           }
 
           .brand {
-            font-size: 18px;
+            font-size: 21px;
           }
 
-          .cartButton {
-            padding: 10px 13px;
+          .quickInfo {
+            grid-template-columns: 1fr;
+            padding: 12px;
           }
 
-          .hero {
-            padding: 55px 5%;
+          .section {
+            padding: 35px 4%;
           }
 
-          .hero h1 {
-            font-size: 43px;
+          .categoryBanner,
+          .categoryBannerImage {
+            height: 220px;
+            min-height: 220px;
+          }
+
+          .bannerText {
+            left: 20px;
+            right: 15px;
+          }
+
+          .bannerText h2 {
+            font-size: 29px;
           }
 
           .productGrid {
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: 11px;
           }
 
           .productImage {
@@ -621,204 +869,333 @@ export default function Home() {
           }
 
           .cardBody {
-            padding: 11px;
+            padding: 10px;
           }
 
           .cardBody h3 {
-            font-size: 15px;
+            font-size: 14px;
           }
 
-          .categoryBanner,
-          .categoryBanner img {
-            height: 220px;
+          .price {
+            font-size: 17px;
           }
 
-          .bannerText {
-            left: 20px;
+          .selectButton {
+            font-size: 11px;
+            padding: 11px;
           }
 
-          .bannerText h2 {
-            font-size: 29px;
+          .intro {
+            padding: 38px 16px 28px;
+          }
+
+          .intro h1 {
+            font-size: 34px;
           }
         }
       `}</style>
 
+      <div className="topBar">
+        <span>🌸 Women's Fashion • Style • Comfort</span>
+        <span>🐝 Bee Girl Shopping</span>
+      </div>
+
       <header className="header">
-        <div>
-          <div className="brand">馃尭 Bee Girl Shopping</div>
-          <div className="tag">
-            Women's Fashion 鈥� Style 鈥� Comfort
-          </div>
-        </div>
+        <div className="headerSide headerLeft">
+          <a className="headerButton wishlistButton" href="#wishlist">
+            ❤️ Wishlist ({wishlist.length})
+          </a>
 
-        <button
-          className="cartButton"
-          onClick={() => {
-            window.location.href = "/checkout";
-          }}
-        >
-          馃洅 Cart ({cartCount})
-        </button>
-      </header>
-
-      <section className="hero">
-        <div className="heroText">
-          <small>鉁� NEW COLLECTION 鉁�</small>
-
-          <h1>
-            Fashion
-            <br />
-            Made For You
-          </h1>
-
-          <p>
-            Discover beautiful women's fashion for every
-            occasion 鈥� from everyday kurtis to elegant sarees,
-            designer lehengas and comfortable night wear.
-          </p>
-
-          <a className="shopButton" href="#collections">
-            Explore Collection 鈫�
+          <a className="headerButton cartButton" href="/cart">
+            🛒 Cart ({cartCount})
           </a>
         </div>
 
+        <div className="brandBlock">
+          <div className="brand">🌸 Bee Girl Shopping</div>
+          <div className="tag">Elegance • Style • Confidence</div>
+        </div>
+
+        <div className="headerSide headerRight">
+          <a
+            className="headerButton locationButton"
+            href="https://www.google.com/maps/search/?api=1&query=Sai+Nagar+7th+Cross+Anantapur"
+            target="_blank"
+            rel="noreferrer"
+          >
+            📍 Location
+          </a>
+
+          <span className="headerButton whatsappHeader">
+            💬 WhatsApp Support
+          </span>
+        </div>
+      </header>
+
+      <section className="heroHeader">
         <img
-          className="heroImage"
-          src={products[1].image}
-          alt="Bee Girl Shopping"
+          src="/products/bee-girl-main-header.png"
+          alt="Bee Girl Shopping fashion collection"
         />
       </section>
 
-      <section className="location">
-        <h3>馃搷 Visit Bee Girl Shopping</h3>
-        <p>Sai Nagar, 7th Cross, Anantapur</p>
+      <section className="intro">
+        <div className="eyebrow">BEE GIRL SHOPPING</div>
 
-        <a
-          className="whatsapp"
-          href="https://wa.me/919999999999"
-          target="_blank"
-          rel="noreferrer"
-        >
-          馃挰 Chat on WhatsApp
+        <h1>Elegance, Made Just for You</h1>
+
+        <p>
+          Timeless styles for every moment — graceful kurtis, beautiful
+          sarees, statement lehengas and comfortable night wear, all in one
+          place.
+        </p>
+
+        <a className="shopButton" href="#collections">
+          EXPLORE COLLECTIONS →
         </a>
       </section>
 
-      <div className="categoryNav">
-        {categories.map((c) => (
+      <section className="quickInfo">
+        <a className="quickCard" href="#wishlist">
+          <span className="quickIcon">♡</span>
+
+          <span>
+            <strong>Wishlist</strong>
+            <span>
+              Save your favourite items ({wishlist.length})
+            </span>
+          </span>
+        </a>
+
+        <a className="quickCard" href="/cart">
+          <span className="quickIcon">🛍️</span>
+
+          <span>
+            <strong>Your Cart</strong>
+            <span>
+              View and manage items ({cartCount})
+            </span>
+          </span>
+        </a>
+
+        <a
+          className="quickCard"
+          href="https://www.google.com/maps/search/?api=1&query=Sai+Nagar+7th+Cross+Anantapur"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <span className="quickIcon">📍</span>
+
+          <span>
+            <strong>Our Store</strong>
+            <span>Sai Nagar, 7th Cross, Anantapur</span>
+          </span>
+        </a>
+
+        <div className="quickCard">
+          <span className="quickIcon">💬</span>
+
+          <span>
+            <strong>WhatsApp Support</strong>
+            <span>Support number will be added later</span>
+          </span>
+        </div>
+      </section>
+
+      <nav className="categoryNav" id="collections">
+        {categories.map((category) => (
           <button
-            key={c.name}
-            onClick={() => showCategory(c.name)}
+            key={category.name}
+            onClick={() => showCategory(category.name)}
           >
-            {c.name}
+            {category.name}
           </button>
         ))}
-      </div>
+      </nav>
 
-      <div id="collections">
-        {categories.map((cat) => {
-          const items = products.filter(
-            (p) => p.category === cat.name
-          );
+      {categories.map((category) => {
+        const items = products.filter(
+          (product) => product.category === category.name
+        );
 
-          return (
-            <section
-              key={cat.name}
-              id={cat.name}
-              className="section"
-            >
-              <div className="categoryBanner">
-                <img src={cat.image} alt={cat.title} />
+        return (
+          <section
+            key={category.name}
+            id={category.name}
+            className="section"
+          >
+            <div className="categoryBanner">
+              <ProductImage
+                className="categoryBannerImage"
+                src={items[0].image}
+                category={category.name}
+                alt={category.title}
+              />
 
-                <div className="bannerText">
-                  <h2>{cat.title}</h2>
-                  <p>{cat.subtitle}</p>
-                </div>
+              <div className="bannerText">
+                <h2>{category.title}</h2>
+                <p>{category.subtitle}</p>
               </div>
+            </div>
 
-              <div className="sectionHead">
-                <h2>{cat.name}</h2>
-                <p>Choose your favourite style</p>
-              </div>
+            <div className="sectionHead">
+              <h2>{category.name}</h2>
+              <p>Choose your favourite style</p>
+            </div>
 
-              <div className="productGrid">
-                {items.map((p) => (
-                  <div className="card" key={p.id}>
-                    <img
-                      className="productImage"
-                      src={p.image}
-                      alt={p.name}
-                    />
+            <div className="productGrid">
+              {items.map((product) => (
+                <article className="card" key={product.id}>
+                  <ProductImage
+                    className="productImage"
+                    src={product.image}
+                    category={product.category}
+                    alt={product.name}
+                  />
+
+                  <button
+                    className="heart"
+                    aria-label={
+                      wishlist.includes(product.id)
+                        ? `Remove ${product.name} from wishlist`
+                        : `Add ${product.name} to wishlist`
+                    }
+                    onClick={() => toggleWishlist(product.id)}
+                  >
+                    {wishlist.includes(product.id) ? "❤️" : "♡"}
+                  </button>
+
+                  <div className="cardBody">
+                    <div className="categoryName">
+                      {product.category}
+                    </div>
+
+                    <h3>{product.name}</h3>
+
+                    <div className="price">
+                      ₹{product.price.toLocaleString("en-IN")}
+                    </div>
 
                     <button
-                      className="heart"
-                      onClick={() => toggleWishlist(p.id)}
+                      className="selectButton"
+                      onClick={() => openProduct(product)}
                     >
-                      {wishlist.includes(p.id)
-                        ? "鉂わ笍"
-                        : "鈾�"}
+                      Select Size & Colour
                     </button>
-
-                    <div className="cardBody">
-                      <div className="categoryName">
-                        {p.category}
-                      </div>
-
-                      <h3>{p.name}</h3>
-
-                      <div className="price">
-                        鈧箋p.price}
-                      </div>
-
-                      <button
-                        className="selectButton"
-                        onClick={() => openProduct(p)}
-                      >
-                        Select Size & Colour
-                      </button>
-                    </div>
                   </div>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+
+      <section
+        id="wishlist"
+        className="section wishlistSection"
+      >
+        <div className="sectionHead">
+          <h2>❤️ Your Wishlist</h2>
+          <p>Your saved favourites are kept on this device.</p>
+        </div>
+
+        {wishlistProducts.length === 0 ? (
+          <div className="wishlistEmpty">
+            No products in your wishlist yet. Tap ♡ on any product to
+            save it.
+          </div>
+        ) : (
+          <div className="productGrid">
+            {wishlistProducts.map((product) => (
+              <article
+                className="card"
+                key={`wishlist-${product.id}`}
+              >
+                <ProductImage
+                  className="productImage"
+                  src={product.image}
+                  category={product.category}
+                  alt={product.name}
+                />
+
+                <button
+                  className="heart"
+                  onClick={() => toggleWishlist(product.id)}
+                >
+                  ❤️
+                </button>
+
+                <div className="cardBody">
+                  <div className="categoryName">
+                    {product.category}
+                  </div>
+
+                  <h3>{product.name}</h3>
+
+                  <div className="price">
+                    ₹{product.price.toLocaleString("en-IN")}
+                  </div>
+
+                  <button
+                    className="selectButton"
+                    onClick={() => openProduct(product)}
+                  >
+                    Select Size & Colour
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <footer className="footer">
-        <h2>馃尭 Bee Girl Shopping</h2>
-        <p>Fashion 鈥� Style 鈥� Comfort</p>
-        <p>馃搷 Sai Nagar, 7th Cross, Anantapur</p>
-        <p>馃挰 WhatsApp Support</p>
-        <p>漏 2026 Bee Girl Shopping</p>
+        <h2>🌸 Bee Girl Shopping</h2>
+
+        <p>Fashion • Style • Comfort</p>
+
+        <p>📍 Sai Nagar, 7th Cross, Anantapur</p>
+
+        <p>💬 WhatsApp Support</p>
+
+        <p>© 2026 Bee Girl Shopping</p>
       </footer>
 
       {selected && (
-        <div className="modalBackground">
+        <div
+          className="modalBackground"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSelected(null);
+            }
+          }}
+        >
           <div className="modal">
-            <img
+            <ProductImage
               className="modalImage"
               src={selected.image}
+              category={selected.category}
               alt={selected.name}
             />
 
             <h2>{selected.name}</h2>
 
-            <h2 style={{ color: "#7137c8" }}>
-              鈧箋selected.price}
-            </h2>
+            <div className="price">
+              ₹{selected.price.toLocaleString("en-IN")}
+            </div>
 
             <h3>Select Size</h3>
 
             <div className="options">
-              {selected.sizes.map((s) => (
+              {selected.sizes.map((item) => (
                 <button
-                  key={s}
+                  key={item}
                   className={`option ${
-                    size === s ? "selected" : ""
+                    size === item ? "selected" : ""
                   }`}
-                  onClick={() => setSize(s)}
+                  onClick={() => setSize(item)}
                 >
-                  {s}
+                  {item}
                 </button>
               ))}
             </div>
@@ -826,28 +1203,23 @@ export default function Home() {
             <h3>Select Colour</h3>
 
             <div className="options">
-              {selected.colours.map((c) => (
+              {selected.colours.map((item) => (
                 <button
-                  key={c}
+                  key={item}
                   className={`option ${
-                    colour === c ? "selected" : ""
+                    colour === item ? "selected" : ""
                   }`}
-                  onClick={() => setColour(c)}
+                  onClick={() => setColour(item)}
                 >
-                  {c}
+                  {item}
                 </button>
               ))}
             </div>
 
-            {message && (
-              <div className="error">{message}</div>
-            )}
+            {message && <div className="error">{message}</div>}
 
-            <button
-              className="addButton"
-              onClick={addToCart}
-            >
-              馃洅 Add To Cart
+            <button className="addButton" onClick={addToCart}>
+              🛒 Add to Cart
             </button>
 
             <button
@@ -861,4 +1233,4 @@ export default function Home() {
       )}
     </main>
   );
-                      }
+}
