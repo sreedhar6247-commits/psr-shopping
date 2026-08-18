@@ -1,4 +1,3 @@
-```tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -11,6 +10,13 @@ type Product = {
   image: string;
   sizes: string[];
   colours: string[];
+};
+
+const FALLBACK_IMAGES: Record<string, string> = {
+  Kurtis: "/products/kurti-1.jpg",
+  Sarees: "/products/fallback-saree.svg",
+  Lehengas: "/products/fallback-lehenga.svg",
+  "Night Wear": "/products/fallback-nightwear.svg",
 };
 
 const products: Product[] = [
@@ -101,23 +107,31 @@ const categories = [
     name: "Kurtis",
     title: "Elegant Kurtis",
     subtitle: "Everyday style with beautiful designs",
+    image: products[0].image,
   },
   {
     name: "Sarees",
     title: "Graceful Sarees",
     subtitle: "Traditional beauty with a modern touch",
+    image: products[2].image,
   },
   {
     name: "Lehengas",
     title: "Designer Lehengas",
     subtitle: "Perfect for celebrations",
+    image: products[4].image,
   },
   {
     name: "Night Wear",
     title: "Comfort Night Wear",
     subtitle: "Relax in comfort and style",
+    image: products[6].image,
   },
 ];
+
+function safeImage(category: string) {
+  return FALLBACK_IMAGES[category] || "/products/hero-violet-kurti.png";
+}
 
 function ProductImage({
   src,
@@ -130,30 +144,22 @@ function ProductImage({
   category: string;
   className?: string;
 }) {
-  const [failed, setFailed] = useState(false);
+  const [imageSrc, setImageSrc] = useState(src);
 
   useEffect(() => {
-    setFailed(false);
+    setImageSrc(src);
   }, [src]);
-
-  if (failed) {
-    return (
-      <div className={`${className || ""} imageFallback`}>
-        <span>🌸</span>
-        <strong>{category}</strong>
-        <small>Image temporarily unavailable</small>
-      </div>
-    );
-  }
 
   return (
     <img
       className={className}
-      src={src}
+      src={imageSrc}
       alt={alt}
       loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
+      onError={() => {
+        const fallback = safeImage(category);
+        if (imageSrc !== fallback) setImageSrc(fallback);
+      }}
     />
   );
 }
@@ -166,11 +172,12 @@ export default function Home() {
   const [cartCount, setCartCount] = useState(0);
   const [message, setMessage] = useState("");
 
-  const refreshCounts = () => {
+  function refreshCounts() {
     try {
       const cart = JSON.parse(
         localStorage.getItem("bee-girl-shopping-cart") || "[]"
       );
+
       const wish = JSON.parse(
         localStorage.getItem("bee-girl-wishlist") || "[]"
       );
@@ -190,7 +197,7 @@ export default function Home() {
       setCartCount(0);
       setWishlist([]);
     }
-  };
+  }
 
   useEffect(() => {
     refreshCounts();
@@ -207,7 +214,7 @@ export default function Home() {
   }, []);
 
   const wishlistProducts = useMemo(
-    () => products.filter((product) => wishlist.includes(product.id)),
+    () => products.filter((p) => wishlist.includes(p.id)),
     [wishlist]
   );
 
@@ -217,7 +224,11 @@ export default function Home() {
       : [...wishlist, id];
 
     setWishlist(updated);
-    localStorage.setItem("bee-girl-wishlist", JSON.stringify(updated));
+    localStorage.setItem(
+      "bee-girl-wishlist",
+      JSON.stringify(updated)
+    );
+
     window.dispatchEvent(new Event("wishlist-updated"));
   }
 
@@ -247,6 +258,7 @@ export default function Home() {
       const saved = JSON.parse(
         localStorage.getItem("bee-girl-shopping-cart") || "[]"
       );
+
       cart = Array.isArray(saved) ? saved : [];
     } catch {
       cart = [];
@@ -280,6 +292,7 @@ export default function Home() {
     );
 
     window.dispatchEvent(new Event("cart-updated"));
+
     setSelected(null);
   }
 
@@ -315,27 +328,27 @@ export default function Home() {
         }
 
         .topBar {
-          background: #32102d;
-          color: #fff;
+          background: #351226;
+          color: white;
           padding: 8px 5%;
           display: flex;
           justify-content: space-between;
           font-size: 11px;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.04em;
         }
 
         .header {
           position: sticky;
           top: 0;
           z-index: 50;
-          background: rgba(255, 255, 255, 0.98);
-          backdrop-filter: blur(14px);
+          background: rgba(255, 255, 255, 0.97);
+          backdrop-filter: blur(12px);
           display: grid;
           grid-template-columns: 1fr auto 1fr;
           align-items: center;
           gap: 16px;
-          padding: 10px 5%;
-          box-shadow: 0 4px 20px rgba(65, 20, 55, 0.1);
+          padding: 12px 5%;
+          box-shadow: 0 3px 18px rgba(59, 23, 41, 0.1);
         }
 
         .headerSide {
@@ -356,22 +369,21 @@ export default function Home() {
           text-align: center;
         }
 
-        .siteLogo {
-          width: 125px;
+        .logoImage {
+          width: 135px;
           height: 48px;
-          object-fit: cover;
+          object-fit: contain;
           display: block;
-          margin: 0 auto 5px;
-          border-radius: 5px;
+          margin: 0 auto 2px;
         }
 
         .brand {
-          color: #641744;
-          font: 800 23px Georgia, serif;
+          color: #691d45;
+          font: 800 22px Georgia, serif;
         }
 
         .tag {
-          color: #88747f;
+          color: #87747d;
           font-size: 10px;
           margin-top: 3px;
         }
@@ -388,25 +400,24 @@ export default function Home() {
         }
 
         .wishlistButton {
-          background: #9b4778;
-          color: #fff;
+          background: #9b5274;
+          color: white;
         }
 
         .cartButton {
-          background: #641744;
-          color: #fff;
+          background: #691d45;
+          color: white;
         }
 
         .locationButton {
-          background: #a56c1d;
-          color: #fff;
+          background: #b17b27;
+          color: white;
         }
 
         .whatsappHeader {
-          background: #f3edf1;
-          color: #641744;
-          border: 1px solid #dbcbd4;
-          cursor: default;
+          background: #f4f0f2;
+          color: #691d45;
+          border: 1px solid #dbcbd3;
         }
 
         .heroHeader {
@@ -419,62 +430,57 @@ export default function Home() {
           width: 100%;
           height: auto;
           display: block;
-          max-height: 760px;
-          object-fit: cover;
         }
 
         .intro {
-          padding: 50px 20px 38px;
+          padding: 45px 20px 35px;
           text-align: center;
-          background:
-            radial-gradient(
-              circle at top right,
-              rgba(182, 111, 160, 0.12),
-              transparent 35%
-            ),
-            linear-gradient(135deg, #fffafd, #f2e4f5);
+          background: linear-gradient(
+            135deg,
+            #fffafc,
+            #f4e8ef
+          );
         }
 
         .eyebrow {
-          color: #a56c1d;
+          color: #b17b27;
           font-size: 10px;
           font-weight: 800;
-          letter-spacing: 0.3em;
+          letter-spacing: 0.28em;
         }
 
         .intro h1 {
-          font: 700 clamp(36px, 5vw, 58px) Georgia, serif;
-          color: #58133d;
+          font: 700 clamp(34px, 5vw, 56px) Georgia, serif;
+          color: #5a183c;
           margin: 10px 0;
         }
 
         .intro p {
-          max-width: 780px;
-          margin: 0 auto 22px;
-          color: #6f626b;
+          max-width: 760px;
+          margin: 0 auto 20px;
+          color: #76666e;
           line-height: 1.7;
           font-size: 15px;
         }
 
         .shopButton {
           display: inline-block;
-          background: #641744;
-          color: #fff;
-          padding: 14px 25px;
+          background: #691d45;
+          color: white;
+          padding: 13px 23px;
           border-radius: 28px;
           text-decoration: none;
           font-weight: 800;
           font-size: 12px;
-          box-shadow: 0 8px 20px rgba(100, 23, 68, 0.2);
         }
 
         .quickInfo {
           max-width: 1280px;
           margin: 0 auto;
           padding: 18px 5%;
-          background: #4a1734;
+          background: #4b1933;
           display: grid;
-          grid-template-columns: 1fr 1fr 1fr 1fr;
+          grid-template-columns: repeat(4, 1fr);
           gap: 12px;
         }
 
@@ -483,7 +489,7 @@ export default function Home() {
           padding: 13px 15px;
           border: 1px solid rgba(229, 193, 122, 0.5);
           border-radius: 14px;
-          color: #fff;
+          color: white;
           text-decoration: none;
           background: rgba(255, 255, 255, 0.04);
           display: flex;
@@ -496,7 +502,7 @@ export default function Home() {
           font-size: 13px;
         }
 
-        .quickCard span {
+        .quickCard span span {
           display: block;
           color: #eadce2;
           font-size: 10px;
@@ -519,7 +525,7 @@ export default function Home() {
 
         .categoryNav button {
           border: 1px solid #dfcbd4;
-          background: #fff;
+          background: white;
           color: #641c42;
           padding: 11px 20px;
           border-radius: 25px;
@@ -554,7 +560,7 @@ export default function Home() {
           left: 34px;
           top: 50%;
           transform: translateY(-50%);
-          color: #fff;
+          color: white;
         }
 
         .bannerText h2 {
@@ -589,17 +595,11 @@ export default function Home() {
         }
 
         .card {
-          background: #fff;
+          background: white;
           border-radius: 20px;
           overflow: hidden;
           position: relative;
           box-shadow: 0 7px 24px rgba(59, 23, 41, 0.08);
-          transition: 0.2s;
-        }
-
-        .card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 30px rgba(59, 23, 41, 0.12);
         }
 
         .productImage {
@@ -610,32 +610,6 @@ export default function Home() {
           background: #f4e9ee;
         }
 
-        .imageFallback {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          color: #6b2a4c;
-          background: linear-gradient(135deg, #f8edf2, #eee0e9);
-          padding: 20px;
-        }
-
-        .imageFallback span {
-          font-size: 34px;
-        }
-
-        .imageFallback strong {
-          margin-top: 8px;
-          font: 700 18px Georgia, serif;
-        }
-
-        .imageFallback small {
-          margin-top: 5px;
-          color: #89757f;
-          font-size: 10px;
-        }
-
         .heart {
           position: absolute;
           top: 12px;
@@ -644,7 +618,7 @@ export default function Home() {
           height: 42px;
           border: 0;
           border-radius: 50%;
-          background: #fff;
+          background: white;
           font-size: 22px;
           cursor: pointer;
           box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
@@ -677,7 +651,7 @@ export default function Home() {
           width: 100%;
           border: 0;
           background: #691d45;
-          color: #fff;
+          color: white;
           padding: 12px;
           border-radius: 24px;
           font-weight: 800;
@@ -685,7 +659,7 @@ export default function Home() {
         }
 
         .wishlistSection {
-          background: #fff;
+          background: white;
           border-top: 1px solid #eddde4;
           border-bottom: 1px solid #eddde4;
         }
@@ -699,7 +673,7 @@ export default function Home() {
         .footer {
           margin-top: 35px;
           background: #24101a;
-          color: #fff;
+          color: white;
           text-align: center;
           padding: 40px 20px;
         }
@@ -728,7 +702,7 @@ export default function Home() {
         }
 
         .modal {
-          background: #fff;
+          background: white;
           width: 100%;
           max-width: 500px;
           max-height: 92vh;
@@ -757,7 +731,7 @@ export default function Home() {
 
         .option {
           border: 1px solid #d8c5ce;
-          background: #fff;
+          background: white;
           padding: 10px 17px;
           border-radius: 20px;
           cursor: pointer;
@@ -765,7 +739,7 @@ export default function Home() {
 
         .option.selected {
           background: #691d45;
-          color: #fff;
+          color: white;
           border-color: #691d45;
         }
 
@@ -780,7 +754,7 @@ export default function Home() {
 
         .addButton {
           background: #691d45;
-          color: #fff;
+          color: white;
           font-weight: 800;
           margin-top: 18px;
         }
@@ -821,10 +795,6 @@ export default function Home() {
           .productGrid {
             grid-template-columns: repeat(2, 1fr);
           }
-
-          .heroHeader img {
-            max-height: none;
-          }
         }
 
         @media (max-width: 560px) {
@@ -841,13 +811,9 @@ export default function Home() {
             font-size: 11px;
           }
 
-          .siteLogo {
-            width: 110px;
-            height: 42px;
-          }
-
-          .brand {
-            font-size: 21px;
+          .logoImage {
+            width: 120px;
+            height: 43px;
           }
 
           .quickInfo {
@@ -916,7 +882,6 @@ export default function Home() {
       </div>
 
       <header className="header">
-        {/* LEFT: WISHLIST + CART */}
         <div className="headerSide headerLeft">
           <a
             className="headerButton wishlistButton"
@@ -933,24 +898,23 @@ export default function Home() {
           </a>
         </div>
 
-        {/* CENTER: LOGO + NAME */}
         <div className="brandBlock">
           <img
-            src="/bee-girl-logo.jpg"
-            alt="Bee Girl Logo"
-            className="siteLogo"
+            className="logoImage"
+            src="/products/bee-girl-logo.jpg"
+            alt="Bee Girl Shopping"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
           />
 
-          <div className="brand">
-            Bee Girl Shopping
-          </div>
+          <div className="brand">Bee Girl Shopping</div>
 
           <div className="tag">
-            Women's Fashion • Style • Comfort
+            Elegance • Style • Confidence
           </div>
         </div>
 
-        {/* RIGHT: LOCATION + WHATSAPP SUPPORT */}
         <div className="headerSide headerRight">
           <a
             className="headerButton locationButton"
@@ -961,39 +925,30 @@ export default function Home() {
             📍 Location
           </a>
 
-          <span
-            className="headerButton whatsappHeader"
-            title="WhatsApp number will be added later"
-          >
+          <span className="headerButton whatsappHeader">
             💬 WhatsApp Support
           </span>
         </div>
       </header>
 
-      {/* MAIN HEADER IMAGE — EXISTING IMAGE IS KEPT */}
       <section className="heroHeader">
         <img
           src="/products/bee-girl-main-header.png"
-          alt="Bee Girl Shopping fashion collection"
+          alt="Bee Girl Shopping main fashion banner"
         />
       </section>
 
-      {/* MAIN CAPTION */}
       <section className="intro">
         <div className="eyebrow">
-          ✨ NEW COLLECTION • BEE GIRL SHOPPING ✨
+          ✨ BEE GIRL SHOPPING ✨
         </div>
 
-        <h1>
-          Style That Feels
-          <br />
-          Beautifully You
-        </h1>
+        <h1>Wear Your Style. Own Your Moment.</h1>
 
         <p>
-          Discover graceful kurtis, beautiful sarees, designer
-          lehengas and comfortable night wear — thoughtfully
-          brought together for every occasion.
+          Discover beautiful women's fashion for every occasion —
+          from elegant kurtis and graceful sarees to designer
+          lehengas and comfortable night wear.
         </p>
 
         <a
@@ -1004,13 +959,13 @@ export default function Home() {
         </a>
       </section>
 
-      {/* FOUR MAIN QUICK CARDS */}
       <section className="quickInfo">
         <a
           className="quickCard"
           href="#wishlist"
         >
-          <span className="quickIcon">♡</span>
+          <span className="quickIcon">❤️</span>
+
           <span>
             <strong>Wishlist</strong>
             <span>
@@ -1024,6 +979,7 @@ export default function Home() {
           href="/cart"
         >
           <span className="quickIcon">🛍️</span>
+
           <span>
             <strong>Your Cart</strong>
             <span>
@@ -1039,6 +995,7 @@ export default function Home() {
           rel="noopener noreferrer"
         >
           <span className="quickIcon">📍</span>
+
           <span>
             <strong>Our Store</strong>
             <span>
@@ -1049,16 +1006,16 @@ export default function Home() {
 
         <div className="quickCard">
           <span className="quickIcon">💬</span>
+
           <span>
             <strong>WhatsApp Support</strong>
             <span>
-              Support number will be added later
+              Customer support
             </span>
           </span>
         </div>
       </section>
 
-      {/* CATEGORY NAVIGATION */}
       <nav
         className="categoryNav"
         id="collections"
@@ -1073,10 +1030,10 @@ export default function Home() {
         ))}
       </nav>
 
-      {/* EXISTING PRODUCT SECTIONS */}
       {categories.map((category) => {
         const items = products.filter(
-          (product) => product.category === category.name
+          (product) =>
+            product.category === category.name
         );
 
         return (
@@ -1088,7 +1045,7 @@ export default function Home() {
             <div className="categoryBanner">
               <ProductImage
                 className="categoryBannerImage"
-                src={items[0].image}
+                src={category.image}
                 category={category.name}
                 alt={category.title}
               />
@@ -1141,7 +1098,10 @@ export default function Home() {
                     <h3>{product.name}</h3>
 
                     <div className="price">
-                      ₹{product.price.toLocaleString("en-IN")}
+                      ₹
+                      {product.price.toLocaleString(
+                        "en-IN"
+                      )}
                     </div>
 
                     <button
@@ -1160,7 +1120,6 @@ export default function Home() {
         );
       })}
 
-      {/* WISHLIST */}
       <section
         id="wishlist"
         className="section wishlistSection"
@@ -1168,7 +1127,8 @@ export default function Home() {
         <div className="sectionHead">
           <h2>❤️ Your Wishlist</h2>
           <p>
-            Your saved favourites are kept on this device.
+            Your saved favourites are kept on this
+            device.
           </p>
         </div>
 
@@ -1208,7 +1168,10 @@ export default function Home() {
                   <h3>{product.name}</h3>
 
                   <div className="price">
-                    ₹{product.price.toLocaleString("en-IN")}
+                    ₹
+                    {product.price.toLocaleString(
+                      "en-IN"
+                    )}
                   </div>
 
                   <button
@@ -1226,16 +1189,20 @@ export default function Home() {
         )}
       </section>
 
-      {/* FOOTER */}
       <footer className="footer">
         <h2>🌸 Bee Girl Shopping</h2>
+
         <p>Fashion • Style • Comfort</p>
-        <p>📍 Sai Nagar, 7th Cross, Anantapur</p>
+
+        <p>
+          📍 Sai Nagar, 7th Cross, Anantapur
+        </p>
+
         <p>💬 WhatsApp Support</p>
+
         <p>© 2026 Bee Girl Shopping</p>
       </footer>
 
-      {/* SIZE + COLOUR + ADD TO CART MODAL */}
       {selected && (
         <div
           className="modalBackground"
@@ -1258,7 +1225,10 @@ export default function Home() {
             <h2>{selected.name}</h2>
 
             <div className="price">
-              ₹{selected.price.toLocaleString("en-IN")}
+              ₹
+              {selected.price.toLocaleString(
+                "en-IN"
+              )}
             </div>
 
             <h3>Select Size</h3>
@@ -1268,9 +1238,13 @@ export default function Home() {
                 <button
                   key={item}
                   className={`option ${
-                    size === item ? "selected" : ""
+                    size === item
+                      ? "selected"
+                      : ""
                   }`}
-                  onClick={() => setSize(item)}
+                  onClick={() =>
+                    setSize(item)
+                  }
                 >
                   {item}
                 </button>
@@ -1284,9 +1258,13 @@ export default function Home() {
                 <button
                   key={item}
                   className={`option ${
-                    colour === item ? "selected" : ""
+                    colour === item
+                      ? "selected"
+                      : ""
                   }`}
-                  onClick={() => setColour(item)}
+                  onClick={() =>
+                    setColour(item)
+                  }
                 >
                   {item}
                 </button>
@@ -1308,7 +1286,9 @@ export default function Home() {
 
             <button
               className="closeButton"
-              onClick={() => setSelected(null)}
+              onClick={() =>
+                setSelected(null)
+              }
             >
               Close
             </button>
@@ -1318,4 +1298,3 @@ export default function Home() {
     </main>
   );
 }
-```
