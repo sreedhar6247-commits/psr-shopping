@@ -1,3 +1,4 @@
+```tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -131,15 +132,13 @@ function ProductImage({
 }) {
   const [failed, setFailed] = useState(false);
 
-  useEffect(() => setFailed(false), [src]);
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
 
   if (failed) {
     return (
-      <div
-        className={`${className || ""} imageFallback`}
-        role="img"
-        aria-label={alt}
-      >
+      <div className={`${className || ""} imageFallback`}>
         <span>🌸</span>
         <strong>{category}</strong>
         <small>Image temporarily unavailable</small>
@@ -172,7 +171,6 @@ export default function Home() {
       const cart = JSON.parse(
         localStorage.getItem("bee-girl-shopping-cart") || "[]"
       );
-
       const wish = JSON.parse(
         localStorage.getItem("bee-girl-wishlist") || "[]"
       );
@@ -219,12 +217,7 @@ export default function Home() {
       : [...wishlist, id];
 
     setWishlist(updated);
-
-    localStorage.setItem(
-      "bee-girl-wishlist",
-      JSON.stringify(updated)
-    );
-
+    localStorage.setItem("bee-girl-wishlist", JSON.stringify(updated));
     window.dispatchEvent(new Event("wishlist-updated"));
   }
 
@@ -254,7 +247,6 @@ export default function Home() {
       const saved = JSON.parse(
         localStorage.getItem("bee-girl-shopping-cart") || "[]"
       );
-
       cart = Array.isArray(saved) ? saved : [];
     } catch {
       cart = [];
@@ -288,7 +280,6 @@ export default function Home() {
     );
 
     window.dispatchEvent(new Event("cart-updated"));
-
     setSelected(null);
   }
 
@@ -324,27 +315,27 @@ export default function Home() {
         }
 
         .topBar {
-          background: #3b1729;
+          background: #32102d;
           color: #fff;
           padding: 8px 5%;
           display: flex;
           justify-content: space-between;
           font-size: 11px;
-          letter-spacing: 0.04em;
+          letter-spacing: 0.05em;
         }
 
         .header {
           position: sticky;
           top: 0;
           z-index: 50;
-          background: rgba(255, 255, 255, 0.97);
-          backdrop-filter: blur(12px);
+          background: rgba(255, 255, 255, 0.98);
+          backdrop-filter: blur(14px);
           display: grid;
           grid-template-columns: 1fr auto 1fr;
           align-items: center;
           gap: 16px;
-          padding: 13px 5%;
-          box-shadow: 0 3px 18px rgba(59, 23, 41, 0.1);
+          padding: 10px 5%;
+          box-shadow: 0 4px 20px rgba(65, 20, 55, 0.1);
         }
 
         .headerSide {
@@ -365,14 +356,23 @@ export default function Home() {
           text-align: center;
         }
 
+        .siteLogo {
+          width: 125px;
+          height: 48px;
+          object-fit: cover;
+          display: block;
+          margin: 0 auto 5px;
+          border-radius: 5px;
+        }
+
         .brand {
-          color: #691d45;
-          font: 800 24px Georgia, serif;
+          color: #641744;
+          font: 800 23px Georgia, serif;
         }
 
         .tag {
-          color: #87747d;
-          font-size: 11px;
+          color: #88747f;
+          font-size: 10px;
           margin-top: 3px;
         }
 
@@ -387,28 +387,25 @@ export default function Home() {
           white-space: nowrap;
         }
 
-        .wishlistButton,
-        .cartButton {
+        .wishlistButton {
+          background: #9b4778;
           color: #fff;
         }
 
-        .wishlistButton {
-          background: #9b5274;
-        }
-
         .cartButton {
-          background: #691d45;
+          background: #641744;
+          color: #fff;
         }
 
         .locationButton {
-          background: #b17b27;
+          background: #a56c1d;
           color: #fff;
         }
 
         .whatsappHeader {
-          background: #f4f0f2;
-          color: #691d45;
-          border: 1px solid #dbcbd3;
+          background: #f3edf1;
+          color: #641744;
+          border: 1px solid #dbcbd4;
           cursor: default;
         }
 
@@ -427,48 +424,55 @@ export default function Home() {
         }
 
         .intro {
-          padding: 48px 20px 34px;
+          padding: 50px 20px 38px;
           text-align: center;
-          background: linear-gradient(135deg, #fffafc, #f4e8ef);
+          background:
+            radial-gradient(
+              circle at top right,
+              rgba(182, 111, 160, 0.12),
+              transparent 35%
+            ),
+            linear-gradient(135deg, #fffafd, #f2e4f5);
         }
 
         .eyebrow {
-          color: #b17b27;
+          color: #a56c1d;
           font-size: 10px;
           font-weight: 800;
-          letter-spacing: 0.28em;
+          letter-spacing: 0.3em;
         }
 
         .intro h1 {
-          font: 700 clamp(34px, 5vw, 56px) Georgia, serif;
-          color: #5a183c;
+          font: 700 clamp(36px, 5vw, 58px) Georgia, serif;
+          color: #58133d;
           margin: 10px 0;
         }
 
         .intro p {
-          max-width: 760px;
-          margin: 0 auto 20px;
-          color: #76666e;
+          max-width: 780px;
+          margin: 0 auto 22px;
+          color: #6f626b;
           line-height: 1.7;
           font-size: 15px;
         }
 
         .shopButton {
           display: inline-block;
-          background: #691d45;
+          background: #641744;
           color: #fff;
-          padding: 13px 23px;
+          padding: 14px 25px;
           border-radius: 28px;
           text-decoration: none;
           font-weight: 800;
           font-size: 12px;
+          box-shadow: 0 8px 20px rgba(100, 23, 68, 0.2);
         }
 
         .quickInfo {
           max-width: 1280px;
           margin: 0 auto;
           padding: 18px 5%;
-          background: #4b1933;
+          background: #4a1734;
           display: grid;
           grid-template-columns: 1fr 1fr 1fr 1fr;
           gap: 12px;
@@ -586,10 +590,16 @@ export default function Home() {
 
         .card {
           background: #fff;
-          border-radius: 18px;
+          border-radius: 20px;
           overflow: hidden;
           position: relative;
-          box-shadow: 0 8px 25px rgba(59, 23, 41, 0.08);
+          box-shadow: 0 7px 24px rgba(59, 23, 41, 0.08);
+          transition: 0.2s;
+        }
+
+        .card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(59, 23, 41, 0.12);
         }
 
         .productImage {
@@ -831,6 +841,11 @@ export default function Home() {
             font-size: 11px;
           }
 
+          .siteLogo {
+            width: 110px;
+            height: 42px;
+          }
+
           .brand {
             font-size: 21px;
           }
@@ -901,37 +916,61 @@ export default function Home() {
       </div>
 
       <header className="header">
+        {/* LEFT: WISHLIST + CART */}
         <div className="headerSide headerLeft">
-          <a className="headerButton wishlistButton" href="#wishlist">
+          <a
+            className="headerButton wishlistButton"
+            href="#wishlist"
+          >
             ❤️ Wishlist ({wishlist.length})
           </a>
 
-          <a className="headerButton cartButton" href="/cart">
+          <a
+            className="headerButton cartButton"
+            href="/cart"
+          >
             🛒 Cart ({cartCount})
           </a>
         </div>
 
+        {/* CENTER: LOGO + NAME */}
         <div className="brandBlock">
-          <div className="brand">🌸 Bee Girl Shopping</div>
-          <div className="tag">Elegance • Style • Confidence</div>
+          <img
+            src="/bee-girl-logo.jpg"
+            alt="Bee Girl Logo"
+            className="siteLogo"
+          />
+
+          <div className="brand">
+            Bee Girl Shopping
+          </div>
+
+          <div className="tag">
+            Women's Fashion • Style • Comfort
+          </div>
         </div>
 
+        {/* RIGHT: LOCATION + WHATSAPP SUPPORT */}
         <div className="headerSide headerRight">
           <a
             className="headerButton locationButton"
-            href="https://www.google.com/maps/search/?api=1&query=Sai+Nagar+7th+Cross+Anantapur"
+            href="https://maps.app.goo.gl/cdn339RiDvj99ikE9?g_st=ac"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
           >
             📍 Location
           </a>
 
-          <span className="headerButton whatsappHeader">
+          <span
+            className="headerButton whatsappHeader"
+            title="WhatsApp number will be added later"
+          >
             💬 WhatsApp Support
           </span>
         </div>
       </header>
 
+      {/* MAIN HEADER IMAGE — EXISTING IMAGE IS KEPT */}
       <section className="heroHeader">
         <img
           src="/products/bee-girl-main-header.png"
@@ -939,26 +978,39 @@ export default function Home() {
         />
       </section>
 
+      {/* MAIN CAPTION */}
       <section className="intro">
-        <div className="eyebrow">BEE GIRL SHOPPING</div>
+        <div className="eyebrow">
+          ✨ NEW COLLECTION • BEE GIRL SHOPPING ✨
+        </div>
 
-        <h1>Elegance, Made Just for You</h1>
+        <h1>
+          Style That Feels
+          <br />
+          Beautifully You
+        </h1>
 
         <p>
-          Timeless styles for every moment — graceful kurtis, beautiful
-          sarees, statement lehengas and comfortable night wear, all in one
-          place.
+          Discover graceful kurtis, beautiful sarees, designer
+          lehengas and comfortable night wear — thoughtfully
+          brought together for every occasion.
         </p>
 
-        <a className="shopButton" href="#collections">
+        <a
+          className="shopButton"
+          href="#collections"
+        >
           EXPLORE COLLECTIONS →
         </a>
       </section>
 
+      {/* FOUR MAIN QUICK CARDS */}
       <section className="quickInfo">
-        <a className="quickCard" href="#wishlist">
+        <a
+          className="quickCard"
+          href="#wishlist"
+        >
           <span className="quickIcon">♡</span>
-
           <span>
             <strong>Wishlist</strong>
             <span>
@@ -967,9 +1019,11 @@ export default function Home() {
           </span>
         </a>
 
-        <a className="quickCard" href="/cart">
+        <a
+          className="quickCard"
+          href="/cart"
+        >
           <span className="quickIcon">🛍️</span>
-
           <span>
             <strong>Your Cart</strong>
             <span>
@@ -980,29 +1034,35 @@ export default function Home() {
 
         <a
           className="quickCard"
-          href="https://www.google.com/maps/search/?api=1&query=Sai+Nagar+7th+Cross+Anantapur"
+          href="https://maps.app.goo.gl/cdn339RiDvj99ikE9?g_st=ac"
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
         >
           <span className="quickIcon">📍</span>
-
           <span>
             <strong>Our Store</strong>
-            <span>Sai Nagar, 7th Cross, Anantapur</span>
+            <span>
+              Sai Nagar, 7th Cross, Anantapur
+            </span>
           </span>
         </a>
 
         <div className="quickCard">
           <span className="quickIcon">💬</span>
-
           <span>
             <strong>WhatsApp Support</strong>
-            <span>Support number will be added later</span>
+            <span>
+              Support number will be added later
+            </span>
           </span>
         </div>
       </section>
 
-      <nav className="categoryNav" id="collections">
+      {/* CATEGORY NAVIGATION */}
+      <nav
+        className="categoryNav"
+        id="collections"
+      >
         {categories.map((category) => (
           <button
             key={category.name}
@@ -1013,6 +1073,7 @@ export default function Home() {
         ))}
       </nav>
 
+      {/* EXISTING PRODUCT SECTIONS */}
       {categories.map((category) => {
         const items = products.filter(
           (product) => product.category === category.name
@@ -1045,7 +1106,10 @@ export default function Home() {
 
             <div className="productGrid">
               {items.map((product) => (
-                <article className="card" key={product.id}>
+                <article
+                  className="card"
+                  key={product.id}
+                >
                   <ProductImage
                     className="productImage"
                     src={product.image}
@@ -1060,9 +1124,13 @@ export default function Home() {
                         ? `Remove ${product.name} from wishlist`
                         : `Add ${product.name} to wishlist`
                     }
-                    onClick={() => toggleWishlist(product.id)}
+                    onClick={() =>
+                      toggleWishlist(product.id)
+                    }
                   >
-                    {wishlist.includes(product.id) ? "❤️" : "♡"}
+                    {wishlist.includes(product.id)
+                      ? "❤️"
+                      : "♡"}
                   </button>
 
                   <div className="cardBody">
@@ -1078,7 +1146,9 @@ export default function Home() {
 
                     <button
                       className="selectButton"
-                      onClick={() => openProduct(product)}
+                      onClick={() =>
+                        openProduct(product)
+                      }
                     >
                       Select Size & Colour
                     </button>
@@ -1090,19 +1160,22 @@ export default function Home() {
         );
       })}
 
+      {/* WISHLIST */}
       <section
         id="wishlist"
         className="section wishlistSection"
       >
         <div className="sectionHead">
           <h2>❤️ Your Wishlist</h2>
-          <p>Your saved favourites are kept on this device.</p>
+          <p>
+            Your saved favourites are kept on this device.
+          </p>
         </div>
 
         {wishlistProducts.length === 0 ? (
           <div className="wishlistEmpty">
-            No products in your wishlist yet. Tap ♡ on any product to
-            save it.
+            No products in your wishlist yet.
+            Tap ♡ on any product to save it.
           </div>
         ) : (
           <div className="productGrid">
@@ -1120,7 +1193,9 @@ export default function Home() {
 
                 <button
                   className="heart"
-                  onClick={() => toggleWishlist(product.id)}
+                  onClick={() =>
+                    toggleWishlist(product.id)
+                  }
                 >
                   ❤️
                 </button>
@@ -1138,7 +1213,9 @@ export default function Home() {
 
                   <button
                     className="selectButton"
-                    onClick={() => openProduct(product)}
+                    onClick={() =>
+                      openProduct(product)
+                    }
                   >
                     Select Size & Colour
                   </button>
@@ -1149,23 +1226,23 @@ export default function Home() {
         )}
       </section>
 
+      {/* FOOTER */}
       <footer className="footer">
         <h2>🌸 Bee Girl Shopping</h2>
-
         <p>Fashion • Style • Comfort</p>
-
         <p>📍 Sai Nagar, 7th Cross, Anantapur</p>
-
         <p>💬 WhatsApp Support</p>
-
         <p>© 2026 Bee Girl Shopping</p>
       </footer>
 
+      {/* SIZE + COLOUR + ADD TO CART MODAL */}
       {selected && (
         <div
           className="modalBackground"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
+            if (
+              event.target === event.currentTarget
+            ) {
               setSelected(null);
             }
           }}
@@ -1216,9 +1293,16 @@ export default function Home() {
               ))}
             </div>
 
-            {message && <div className="error">{message}</div>}
+            {message && (
+              <div className="error">
+                {message}
+              </div>
+            )}
 
-            <button className="addButton" onClick={addToCart}>
+            <button
+              className="addButton"
+              onClick={addToCart}
+            >
               🛒 Add to Cart
             </button>
 
@@ -1234,3 +1318,4 @@ export default function Home() {
     </main>
   );
 }
+```
