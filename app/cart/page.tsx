@@ -1,531 +1,110 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type CartItem = {
   id: number;
   name: string;
+  category: string;
   price: number;
+  image: string;
+  quantity: number;
   size: string;
   color: string;
-  quantity: number;
-  image?: string;
 };
-
-const CART_KEY = "bee-girl-shopping-cart";
 
 export default function CartPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  useEffect(() => {
+  function loadCart() {
     try {
-      const stored = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-      setCart(Array.isArray(stored) ? stored : []);
+      const saved = JSON.parse(localStorage.getItem("bee-girl-shopping-cart") || "[]");
+      setCart(Array.isArray(saved) ? saved : []);
     } catch {
       setCart([]);
     }
+  }
+
+  useEffect(() => {
+    loadCart();
   }, []);
 
-  function saveCart(nextCart: CartItem[]) {
-    setCart(nextCart);
-    localStorage.setItem(CART_KEY, JSON.stringify(nextCart));
+  function saveCart(updated: CartItem[]) {
+    setCart(updated);
+    localStorage.setItem("bee-girl-shopping-cart", JSON.stringify(updated));
+    window.dispatchEvent(new Event("cart-updated"));
   }
 
-  function increase(item: CartItem) {
-    saveCart(
-      cart.map((entry) =>
-        entry.id === item.id &&
-        entry.size === item.size &&
-        entry.color === item.color
-          ? { ...entry, quantity: entry.quantity + 1 }
-          : entry
-      )
-    );
+  function changeQuantity(index: number, amount: number) {
+    const updated = [...cart];
+    updated[index].quantity = Number(updated[index].quantity || 1) + amount;
+    if (updated[index].quantity <= 0) updated.splice(index, 1);
+    saveCart(updated);
   }
 
-  function decrease(item: CartItem) {
-    const next = cart
-      .map((entry) =>
-        entry.id === item.id &&
-        entry.size === item.size &&
-        entry.color === item.color
-          ? { ...entry, quantity: Math.max(0, entry.quantity - 1) }
-          : entry
-      )
-      .filter((entry) => entry.quantity > 0);
-
-    saveCart(next);
+  function removeItem(index: number) {
+    const updated = [...cart];
+    updated.splice(index, 1);
+    saveCart(updated);
   }
 
-  function remove(item: CartItem) {
-    saveCart(
-      cart.filter(
-        (entry) =>
-          !(
-            entry.id === item.id &&
-            entry.size === item.size &&
-            entry.color === item.color
-          )
-      )
-    );
-  }
-
-  const subtotal = useMemo(
-    () =>
-      cart.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      ),
+  const total = useMemo(
+    () => cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity || 1), 0),
     [cart]
   );
-
-  const totalItems = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity, 0),
-    [cart]
-  );
-
-  if (cart.length === 0) {
-    return (
-      <main
-        style={{
-          minHeight: "100vh",
-          background:
-            "linear-gradient(135deg,#fbf7ff,#f0e7ff)",
-          padding: "30px 20px",
-          fontFamily: "Arial, sans-serif",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 850,
-            margin: "0 auto",
-            background: "#fff",
-            borderRadius: 28,
-            padding: "60px 25px",
-            textAlign: "center",
-            boxShadow: "0 15px 50px rgba(50,20,90,.10)",
-          }}
-        >
-          <div style={{ fontSize: 60 }}>🛒</div>
-
-          <h1
-            style={{
-              color: "#5f2c91",
-              marginBottom: 10,
-            }}
-          >
-            Your Cart is Empty
-          </h1>
-
-          <p style={{ color: "#777" }}>
-            Add something beautiful from Bee Girl Shopping.
-          </p>
-
-          <a
-            href="/"
-            style={{
-              display: "inline-block",
-              marginTop: 20,
-              background: "#6f35a8",
-              color: "#fff",
-              padding: "14px 28px",
-              borderRadius: 30,
-              textDecoration: "none",
-              fontWeight: 700,
-            }}
-          >
-            Continue Shopping
-          </a>
-        </div>
-      </main>
-    );
-  }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background:
-          "linear-gradient(135deg,#fbf7ff,#f0e7ff)",
-        padding: "25px 18px 60px",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1100,
-          margin: "0 auto",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 15,
-            marginBottom: 25,
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <a
-              href="/"
-              style={{
-                color: "#6f35a8",
-                textDecoration: "none",
-                fontWeight: 700,
-              }}
-            >
-              ← Continue Shopping
-            </a>
-
-            <h1
-              style={{
-                margin: "12px 0 4px",
-                color: "#35184f",
-              }}
-            >
-              My Cart
-            </h1>
-
-            <p style={{ margin: 0, color: "#777" }}>
-              {totalItems} item
-              {totalItems === 1 ? "" : "s"} in your cart
-            </p>
-          </div>
-
-          <div
-            style={{
-              background: "#fff",
-              padding: "12px 18px",
-              borderRadius: 20,
-              boxShadow: "0 5px 20px rgba(0,0,0,.07)",
-              color: "#6f35a8",
-              fontWeight: 700,
-            }}
-          >
-            Bee Girl Shopping 🌸
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0,1fr) 330px",
-            gap: 22,
-            alignItems: "start",
-          }}
-        >
-          <section>
-            {cart.map((item) => (
-              <article
-                key={`${item.id}-${item.size}-${item.color}`}
-                style={{
-                  background: "#fff",
-                  borderRadius: 22,
-                  padding: 16,
-                  marginBottom: 15,
-                  display: "grid",
-                  gridTemplateColumns: "100px minmax(0,1fr) auto",
-                  gap: 18,
-                  alignItems: "center",
-                  boxShadow:
-                    "0 8px 25px rgba(50,20,90,.08)",
-                }}
-              >
-                <div
-                  style={{
-                    width: 100,
-                    height: 120,
-                    borderRadius: 15,
-                    overflow: "hidden",
-                    background: "#eee",
-                  }}
-                >
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        height: "100%",
-                        display: "grid",
-                        placeItems: "center",
-                        color: "#999",
-                      }}
-                    >
-                      🌸
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h2
-                    style={{
-                      margin: "0 0 8px",
-                      color: "#35184f",
-                      fontSize: 20,
-                    }}
-                  >
-                    {item.name}
-                  </h2>
-
-                  <p
-                    style={{
-                      margin: "5px 0",
-                      color: "#666",
-                    }}
-                  >
-                    Size: <strong>{item.size}</strong>
-                  </p>
-
-                  <p
-                    style={{
-                      margin: "5px 0",
-                      color: "#666",
-                    }}
-                  >
-                    Colour: <strong>{item.color}</strong>
-                  </p>
-
-                  <div
-                    style={{
-                      color: "#6f35a8",
-                      fontSize: 20,
-                      fontWeight: 800,
-                      marginTop: 8,
-                    }}
-                  >
-                    ₹{item.price}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    minWidth: 130,
-                    textAlign: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <button
-                      onClick={() => decrease(item)}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "50%",
-                        border: "1px solid #ddd",
-                        background: "#fff",
-                        cursor: "pointer",
-                        fontSize: 20,
-                      }}
-                    >
-                      −
-                    </button>
-
-                    <strong
-                      style={{
-                        minWidth: 25,
-                      }}
-                    >
-                      {item.quantity}
-                    </strong>
-
-                    <button
-                      onClick={() => increase(item)}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "50%",
-                        border: "0",
-                        background: "#6f35a8",
-                        color: "#fff",
-                        cursor: "pointer",
-                        fontSize: 20,
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => remove(item)}
-                    style={{
-                      marginTop: 12,
-                      border: 0,
-                      background: "transparent",
-                      color: "#c0392b",
-                      cursor: "pointer",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </article>
-            ))}
-          </section>
-
-          <aside
-            style={{
-              background: "#fff",
-              borderRadius: 25,
-              padding: 22,
-              boxShadow:
-                "0 10px 30px rgba(50,20,90,.10)",
-              position: "sticky",
-              top: 20,
-            }}
-          >
-            <h2
-              style={{
-                marginTop: 0,
-                color: "#35184f",
-              }}
-            >
-              Order Summary
-            </h2>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                margin: "15px 0",
-                color: "#666",
-              }}
-            >
-              <span>Items</span>
-              <strong>{totalItems}</strong>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                margin: "15px 0",
-                color: "#666",
-              }}
-            >
-              <span>Subtotal</span>
-              <strong>₹{subtotal}</strong>
-            </div>
-
-            <div
-              style={{
-                borderTop: "1px solid #eee",
-                margin: "18px 0",
-              }}
-            />
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 22,
-                color: "#35184f",
-                fontWeight: 800,
-              }}
-            >
-              <span>Total</span>
-              <span>₹{subtotal}</span>
-            </div>
-
-            <a
-              href="/checkout"
-              style={{
-                display: "block",
-                textAlign: "center",
-                marginTop: 22,
-                background:
-                  "linear-gradient(135deg,#6f35a8,#8d52c7)",
-                color: "#fff",
-                padding: "15px 20px",
-                borderRadius: 30,
-                textDecoration: "none",
-                fontWeight: 800,
-              }}
-            >
-              Proceed to Checkout →
-            </a>
-
-            <p
-              style={{
-                textAlign: "center",
-                color: "#888",
-                fontSize: 12,
-                marginTop: 14,
-              }}
-            >
-              Secure checkout • Bee Girl Shopping
-            </p>
-          </aside>
-        </div>
-      </div>
-
-      <style jsx>{`
-        @media (max-width: 800px) {
-          main {
-            padding-left: 12px !important;
-            padding-right: 12px !important;
-          }
-
-          section {
-            width: 100%;
-          }
-
-          article {
-            grid-template-columns: 80px minmax(0, 1fr) !important;
-          }
-
-          article > div:last-child {
-            grid-column: 1 / -1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-
-          aside {
-            position: static !important;
-          }
-
-          main > div > div {
-            grid-template-columns: 1fr !important;
-          }
-        }
-
-        @media (max-width: 480px) {
-          article {
-            grid-template-columns: 70px minmax(0, 1fr) !important;
-            gap: 12px !important;
-          }
-
-          article > div:first-child {
-            width: 70px !important;
-            height: 90px !important;
-          }
-
-          article h2 {
-            font-size: 16px !important;
-          }
-
-          article p {
-            font-size: 13px;
-          }
-        }
+    <main className="cartPage">
+      <style jsx global>{`
+        *{box-sizing:border-box}body{margin:0;background:#fbf7fa;color:#281a23;font-family:Arial,Helvetica,sans-serif}.cartHeader{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid #ead9df;padding:14px 5%;display:flex;justify-content:space-between;align-items:center;box-shadow:0 3px 15px rgba(59,23,41,.08)}.back{color:#691d45;text-decoration:none;font-weight:800;font-size:12px}.cartBrand{font:700 20px Georgia,serif;color:#691d45}.container{max-width:1000px;margin:auto;padding:30px 18px 60px}.title{text-align:center;font:700 38px Georgia,serif;color:#4d1934;margin:5px 0}.sub{text-align:center;color:#806f78;margin:0 0 28px;font-size:13px}.empty,.item,.summary{background:#fff;border:1px solid #ead9df;border-radius:18px;box-shadow:0 6px 20px rgba(59,23,41,.07)}.empty{text-align:center;padding:55px 20px}.shopButton,.checkoutButton{display:inline-block;background:#691d45;color:#fff;text-decoration:none;border:0;padding:13px 22px;border-radius:26px;font-weight:800;cursor:pointer}.cartList{display:grid;gap:12px}.item{display:flex;gap:16px;padding:13px}.item img{width:105px;height:125px;object-fit:cover;border-radius:12px;background:#f4e9ee}.itemInfo{flex:1}.category{color:#9b5274;font-size:11px;font-weight:800}.item h2{font:700 19px Georgia,serif;color:#4d1934;margin:6px 0}.variant{color:#77666f;font-size:12px}.price{color:#691d45;font-weight:800;margin:10px 0}.actions{display:flex;align-items:center;gap:8px}.qty{width:34px;height:34px;border:1px solid #dac8d1;background:#fff;border-radius:50%;font-size:18px;cursor:pointer;color:#691d45}.remove{border:0;background:#fff0f3;color:#b0002d;padding:9px 12px;border-radius:18px;cursor:pointer;font-weight:700}.summary{margin-top:18px;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:20px}.summary small{color:#7d6c75}.total{font:700 24px Georgia,serif;color:#691d45}@media(max-width:600px){.cartHeader{padding:12px 4%}.cartBrand{font-size:16px}.item{align-items:flex-start}.item img{width:82px;height:105px}.item h2{font-size:16px}.summary{flex-direction:column;align-items:stretch}.checkoutButton{text-align:center}}
       `}</style>
+
+      <header className="cartHeader">
+        <Link href="/" className="back">← Continue Shopping</Link>
+        <div className="cartBrand">🌸 Bee Girl Shopping</div>
+      </header>
+
+      <section className="container">
+        <h1 className="title">Your Cart</h1>
+        <p className="sub">Adjust quantities, remove items, and continue to secure checkout.</p>
+
+        {cart.length === 0 ? (
+          <div className="empty">
+            <div style={{ fontSize: 42 }}>🛍️</div>
+            <h2>Your cart is empty</h2>
+            <p style={{ color: "#806f78" }}>Choose something beautiful from Bee Girl Shopping.</p>
+            <Link href="/" className="shopButton">SHOP NOW</Link>
+          </div>
+        ) : (
+          <>
+            <div className="cartList">
+              {cart.map((item, index) => (
+                <article className="item" key={`${item.id}-${item.size}-${item.color}-${index}`}>
+                  <img src={item.image} alt={item.name} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                  <div className="itemInfo">
+                    <div className="category">{item.category}</div>
+                    <h2>{item.name}</h2>
+                    <div className="variant">Size: <b>{item.size}</b> • Colour: <b>{item.color}</b></div>
+                    <div className="price">₹{Number(item.price).toLocaleString("en-IN")}</div>
+                    <div className="actions">
+                      <button className="qty" onClick={() => changeQuantity(index, -1)} aria-label="Decrease quantity">−</button>
+                      <b>{item.quantity}</b>
+                      <button className="qty" onClick={() => changeQuantity(index, 1)} aria-label="Increase quantity">+</button>
+                      <button className="remove" onClick={() => removeItem(index)}>🗑 Remove</button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="summary">
+              <div><small>{cart.reduce((sum, item) => sum + Number(item.quantity || 1), 0)} item(s) • Delivery calculated at checkout</small><div className="total">Total: ₹{total.toLocaleString("en-IN")}</div></div>
+              <Link href="/checkout" className="checkoutButton">PROCEED TO CHECKOUT →</Link>
+            </div>
+          </>
+        )}
+      </section>
     </main>
   );
 }
