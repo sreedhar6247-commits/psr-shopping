@@ -314,6 +314,9 @@ button {
   display: block;
 }
 
+
+.imageFallback{width:100%;height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f4e9ee;color:#691d45;font-size:32px;gap:8px}.imageFallback b{font:700 14px Georgia,serif}
+
 /* WISHLIST HEART */
 
 .heart {
