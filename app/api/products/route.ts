@@ -22,72 +22,10 @@ const publicProduct = (p: any) => ({
 });
 
 export async function GET() {
-  const db = sql();
-
-  if (!db) {
-    return NextResponse.json(starter);
-  }
-
-  try {
-    let rows: any[] =
-      await db`SELECT * FROM products WHERE active = true ORDER BY id ASC`;
-
-    if (!rows.length) {
-      for (const p of starter) {
-        await db`
-          INSERT INTO products (
-            id,
-            name,
-            category,
-            description,
-            price_paise,
-            sizes,
-            colours,
-            stock,
-            image_url,
-            active
-          )
-          VALUES (
-            ${p.id},
-            ${p.name},
-            ${p.category},
-            ${p.description},
-            ${Math.round(p.price * 100)},
-            ${JSON.stringify(p.sizes)}::jsonb,
-            ${JSON.stringify(p.colours)}::jsonb,
-            ${p.stock},
-            ${p.image},
-            ${p.active}
-          )
-          ON CONFLICT (id) DO NOTHING
-        `;
-      }
-
-      await db`
-        SELECT setval(
-          pg_get_serial_sequence('products','id'),
-          COALESCE((SELECT MAX(id) FROM products), 1),
-          true
-        )
-      `;
-
-      rows =
-        await db`SELECT * FROM products WHERE active = true ORDER BY id ASC`;
-    }
-
-    return NextResponse.json(
-      rows.map(publicProduct)
-    );
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(starter);
-  }
+  return NextResponse.json(starter);
 }
 
-export async function POST(
-  request: NextRequest
-) {
+export async function POST(request: NextRequest) {
   if (!requireAdmin(request)) {
     return NextResponse.json(
       {
@@ -104,8 +42,7 @@ export async function POST(
   if (!db) {
     return NextResponse.json(
       {
-        error:
-          "DATABASE_URL is not configured.",
+        error: "DATABASE_URL is not configured.",
       },
       {
         status: 500,
@@ -116,9 +53,7 @@ export async function POST(
   try {
     const b = await request.json();
 
-    const image = String(
-      b.image || ""
-    );
+    const image = String(b.image || "");
 
     if (
       !b.name ||
@@ -165,23 +100,14 @@ export async function POST(
         ${String(b.name)},
         ${String(b.category)},
         ${String(b.description || "")},
-        ${Math.round(
-          Number(b.price) * 100
-        )},
+        ${Math.round(Number(b.price) * 100)},
         ${JSON.stringify(
-          Array.isArray(b.sizes)
-            ? b.sizes
-            : []
+          Array.isArray(b.sizes) ? b.sizes : []
         )}::jsonb,
         ${JSON.stringify(
-          Array.isArray(b.colours)
-            ? b.colours
-            : []
+          Array.isArray(b.colours) ? b.colours : []
         )}::jsonb,
-        ${Math.max(
-          0,
-          Number(b.stock || 0)
-        )},
+        ${Math.max(0, Number(b.stock || 0))},
         ${image},
         ${b.active !== false}
       )
@@ -200,8 +126,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          e?.message ||
-          "Could not add product.",
+          e?.message || "Could not add product.",
       },
       {
         status: 500,
@@ -210,9 +135,7 @@ export async function POST(
   }
 }
 
-export async function PATCH(
-  request: NextRequest
-) {
+export async function PATCH(request: NextRequest) {
   if (!requireAdmin(request)) {
     return NextResponse.json(
       {
@@ -229,8 +152,7 @@ export async function PATCH(
   if (!db) {
     return NextResponse.json(
       {
-        error:
-          "DATABASE_URL is not configured.",
+        error: "DATABASE_URL is not configured.",
       },
       {
         status: 500,
@@ -239,17 +161,14 @@ export async function PATCH(
   }
 
   try {
-    const b =
-      await request.json();
+    const b = await request.json();
 
-    const id =
-      Number(b.id);
+    const id = Number(b.id);
 
     if (!id) {
       return NextResponse.json(
         {
-          error:
-            "Product id is required.",
+          error: "Product id is required.",
         },
         {
           status: 400,
@@ -257,17 +176,12 @@ export async function PATCH(
       );
     }
 
-    const image =
-      String(b.image || "");
+    const image = String(b.image || "");
 
-    if (
-      image.length >
-      900000
-    ) {
+    if (image.length > 900000) {
       return NextResponse.json(
         {
-          error:
-            "Image is too large.",
+          error: "Image is too large.",
         },
         {
           status: 400,
@@ -279,35 +193,18 @@ export async function PATCH(
       UPDATE products
       SET
         name=${String(b.name)},
-        category=${String(
-          b.category
-        )},
-        description=${String(
-          b.description || ""
-        )},
-        price_paise=${Math.round(
-          Number(b.price) * 100
-        )},
+        category=${String(b.category)},
+        description=${String(b.description || "")},
+        price_paise=${Math.round(Number(b.price) * 100)},
         sizes=${JSON.stringify(
-          Array.isArray(b.sizes)
-            ? b.sizes
-            : []
+          Array.isArray(b.sizes) ? b.sizes : []
         )}::jsonb,
         colours=${JSON.stringify(
-          Array.isArray(b.colours)
-            ? b.colours
-            : []
+          Array.isArray(b.colours) ? b.colours : []
         )}::jsonb,
-        stock=${Math.max(
-          0,
-          Number(
-            b.stock || 0
-          )
-        )},
+        stock=${Math.max(0, Number(b.stock || 0))},
         image_url=${image},
-        active=${
-          b.active !== false
-        }
+        active=${b.active !== false}
       WHERE id=${id}
       RETURNING *
     `;
@@ -315,8 +212,7 @@ export async function PATCH(
     if (!r.length) {
       return NextResponse.json(
         {
-          error:
-            "Product not found.",
+          error: "Product not found.",
         },
         {
           status: 404,
@@ -343,9 +239,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest
-) {
+export async function DELETE(request: NextRequest) {
   if (!requireAdmin(request)) {
     return NextResponse.json(
       {
@@ -357,14 +251,12 @@ export async function DELETE(
     );
   }
 
-  const db =
-    sql();
+  const db = sql();
 
   if (!db) {
     return NextResponse.json(
       {
-        error:
-          "DATABASE_URL is not configured.",
+        error: "DATABASE_URL is not configured.",
       },
       {
         status: 500,
@@ -372,20 +264,14 @@ export async function DELETE(
     );
   }
 
-  const id =
-    Number(
-      new URL(
-        request.url
-      ).searchParams.get(
-        "id"
-      )
-    );
+  const id = Number(
+    new URL(request.url).searchParams.get("id")
+  );
 
   if (!id) {
     return NextResponse.json(
       {
-        error:
-          "Product id is required.",
+        error: "Product id is required.",
       },
       {
         status: 400,
