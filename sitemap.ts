@@ -1,2 +1,0 @@
-import type { MetadataRoute } from "next";
-export default function sitemap():MetadataRoute.Sitemap{return[{url:"https://bee-girl-clothing-ra2jx8xaf-sreedhar6247-8436s-projects.vercel.app/",lastModified:new Date()},{url:"https://bee-girl-clothing-ra2jx8xaf-sreedhar6247-8436s-projects.vercel.app/cart",lastModified:new Date()},{url:"https://bee-girl-clothing-ra2jx8xaf-sreedhar6247-8436s-projects.vercel.app/checkout",lastModified:new Date()}]}
